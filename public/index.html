@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Apoorva Hair Salon — Admin</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f4f2;
+      color: #1a1a1a;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1a1a1a;
+      color: #fff;
+      padding: 20px 32px;
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+    header h1 { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.3px; }
+    header span { font-size: 0.85rem; color: #aaa; }
+
+    nav {
+      background: #fff;
+      border-bottom: 1px solid #e5e5e5;
+      padding: 0 32px;
+      display: flex;
+      gap: 0;
+    }
+    nav button {
+      background: none;
+      border: none;
+      padding: 14px 20px;
+      font-size: 0.9rem;
+      color: #666;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    nav button:hover { color: #1a1a1a; }
+    nav button.active { color: #1a1a1a; border-bottom-color: #c9a96e; font-weight: 600; }
+
+    .container { max-width: 900px; margin: 0 auto; padding: 32px 24px; }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .section-header h2 { font-size: 1.1rem; font-weight: 600; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: none;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-primary { background: #1a1a1a; color: #fff; }
+    .btn-primary:hover { background: #333; }
+    .btn-danger { background: #fee2e2; color: #b91c1c; }
+    .btn-danger:hover { background: #fecaca; }
+    .btn-ghost { background: #f3f4f6; color: #374151; }
+    .btn-ghost:hover { background: #e5e7eb; }
+    .btn-sm { padding: 5px 10px; font-size: 0.78rem; }
+
+    /* Table */
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    thead { background: #f9fafb; }
+    th { padding: 12px 16px; text-align: left; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280; font-weight: 600; }
+    td { padding: 12px 16px; font-size: 0.88rem; border-top: 1px solid #f3f4f6; vertical-align: middle; }
+    tr:hover td { background: #fafafa; }
+
+    /* Cards */
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .card-name { font-size: 1rem; font-weight: 600; margin-bottom: 8px; }
+    .card-meta { font-size: 0.8rem; color: #6b7280; margin-bottom: 4px; }
+    .tag {
+      display: inline-block;
+      background: #f3e8ff;
+      color: #7c3aed;
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 0.75rem;
+      margin: 2px;
+    }
+    .card-actions { display: flex; gap: 8px; margin-top: 14px; }
+
+    /* Schedule grid */
+    .schedule-grid { display: grid; grid-template-columns: 100px 1fr 1fr 80px; gap: 8px; align-items: center; margin-bottom: 6px; }
+    .schedule-grid .day-label { font-size: 0.85rem; font-weight: 500; }
+    .schedule-grid input[type="time"] {
+      padding: 5px 8px;
+      border: 1px solid #d1d5db;
+      border-radius: 5px;
+      font-size: 0.83rem;
+      width: 100%;
+    }
+    .schedule-grid input[type="time"]:disabled { background: #f9fafb; color: #9ca3af; }
+
+    /* Toggle */
+    .toggle { position: relative; display: inline-block; width: 36px; height: 20px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; cursor: pointer; inset: 0;
+      background: #d1d5db; border-radius: 20px; transition: 0.2s;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute;
+      height: 14px; width: 14px; left: 3px; bottom: 3px;
+      background: #fff; border-radius: 50%; transition: 0.2s;
+    }
+    .toggle input:checked + .toggle-slider { background: #c9a96e; }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(16px); }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: 12px;
+      padding: 28px;
+      width: 100%;
+      max-width: 520px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+    .modal h3 { font-size: 1rem; font-weight: 700; margin-bottom: 20px; }
+
+    /* Form */
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-size: 0.82rem; font-weight: 500; color: #374151; margin-bottom: 5px; }
+    input[type="text"], input[type="number"], input[type="email"], input[type="tel"], textarea {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      transition: border-color 0.15s;
+    }
+    input:focus, textarea:focus { outline: none; border-color: #c9a96e; }
+    textarea { resize: vertical; min-height: 70px; }
+
+    .services-check { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+    .services-check label {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 0.84rem; font-weight: 400; color: #1a1a1a;
+      padding: 6px 10px;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .services-check label:hover { background: #f9fafb; }
+    .services-check input[type="checkbox"] { width: 14px; height: 14px; }
+
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; }
+
+    /* Empty state */
+    .empty { text-align: center; padding: 48px 24px; color: #9ca3af; font-size: 0.9rem; }
+
+    /* API Preview */
+    .api-url {
+      background: #1a1a1a; color: #e2e8f0;
+      padding: 10px 16px; border-radius: 6px;
+      font-family: monospace; font-size: 0.83rem;
+      margin-bottom: 16px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .api-url .copy-btn { background: #374151; color: #e2e8f0; border: none; border-radius: 4px; padding: 4px 10px; font-size: 0.75rem; cursor: pointer; }
+    .api-url .copy-btn:hover { background: #4b5563; }
+    pre {
+      background: #1a1a1a; color: #a3e635;
+      padding: 20px; border-radius: 8px;
+      font-size: 0.78rem; overflow-x: auto;
+      white-space: pre-wrap; word-break: break-word;
+      max-height: 500px; overflow-y: auto;
+    }
+
+    .notice {
+      background: #fef9c3;
+      border: 1px solid #fde047;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 0.82rem;
+      color: #713f12;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Apoorva Hair Salon</h1>
+  <span>Admin Panel</span>
+</header>
+
+<nav>
+  <button class="active" data-tab="services">Services</button>
+  <button data-tab="stylists">Stylists</button>
+  <button data-tab="preview">API Preview</button>
+</nav>
+
+<!-- ==================== SERVICES TAB ==================== -->
+<div id="tab-services" class="tab-content active">
+  <div class="container">
+    <div class="section-header">
+      <h2>Services</h2>
+      <button class="btn btn-primary" onclick="openServiceModal()">+ Add Service</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Service</th>
+          <th>Description</th>
+          <th>Duration</th>
+          <th>Price</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="services-tbody">
+        <tr><td colspan="5" class="empty">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ==================== STYLISTS TAB ==================== -->
+<div id="tab-stylists" class="tab-content">
+  <div class="container">
+    <div class="section-header">
+      <h2>Stylists</h2>
+      <button class="btn btn-primary" onclick="openStylistModal()">+ Add Stylist</button>
+    </div>
+    <div id="stylists-cards" class="cards">
+      <div class="empty">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== API PREVIEW TAB ==================== -->
+<div id="tab-preview" class="tab-content">
+  <div class="container">
+    <div class="section-header">
+      <h2>API Preview</h2>
+      <button class="btn btn-ghost" onclick="loadPreview()">↻ Refresh</button>
+    </div>
+    <div class="notice">
+      Use the URL below as your ElevenLabs knowledge base endpoint. Add <code>?format=text</code> for a plain-text version optimised for voice agents.
+    </div>
+    <div class="api-url">
+      <span id="api-url-text">/api/knowledge?format=text</span>
+      <button class="copy-btn" onclick="copyUrl()">Copy</button>
+    </div>
+    <pre id="preview-output">Click Refresh to load preview...</pre>
+  </div>
+</div>
+
+<!-- ==================== SERVICE MODAL ==================== -->
+<div class="modal-overlay" id="service-modal">
+  <div class="modal">
+    <h3 id="service-modal-title">Add Service</h3>
+    <input type="hidden" id="service-id" />
+    <div class="form-group">
+      <label>Service Name *</label>
+      <input type="text" id="service-name" placeholder="e.g. Haircut" />
+    </div>
+    <div class="form-group">
+      <label>Description</label>
+      <textarea id="service-desc" placeholder="Brief description..."></textarea>
+    </div>
+    <div class="form-group">
+      <label>Duration (minutes)</label>
+      <input type="number" id="service-duration" value="60" min="5" step="5" />
+    </div>
+    <div class="form-group">
+      <label>Price ($)</label>
+      <input type="number" id="service-price" value="0" min="0" step="0.01" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('service-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveService()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== STYLIST MODAL ==================== -->
+<div class="modal-overlay" id="stylist-modal">
+  <div class="modal">
+    <h3 id="stylist-modal-title">Add Stylist</h3>
+    <input type="hidden" id="stylist-id" />
+    <div class="form-group">
+      <label>Full Name *</label>
+      <input type="text" id="stylist-name" placeholder="e.g. Sarah Johnson" />
+    </div>
+    <div class="form-group">
+      <label>Phone</label>
+      <input type="tel" id="stylist-phone" placeholder="e.g. 555-1234" />
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="stylist-email" placeholder="e.g. sarah@salon.com" />
+    </div>
+    <div class="form-group">
+      <label>Services</label>
+      <div class="services-check" id="stylist-services-checks"></div>
+    </div>
+    <div class="form-group">
+      <label>Weekly Schedule</label>
+      <div id="schedule-grid"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('stylist-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveStylist()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+  // ─── Tab switching ───────────────────────────────────────────────────────────
+  document.querySelectorAll('nav button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      if (btn.dataset.tab === 'preview') loadPreview();
+    });
+  });
+
+  // ─── Services ────────────────────────────────────────────────────────────────
+  let allServices = [];
+
+  async function loadServices() {
+    const res = await fetch('/api/services');
+    allServices = await res.json();
+    renderServices();
+  }
+
+  function renderServices() {
+    const tbody = document.getElementById('services-tbody');
+    if (!allServices.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty">No services yet. Add one to get started.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = allServices.map(s => `
+      <tr>
+        <td><strong>${esc(s.name)}</strong></td>
+        <td style="color:#6b7280">${esc(s.description || '—')}</td>
+        <td>${s.duration_minutes} min</td>
+        <td>${s.price > 0 ? '$' + Number(s.price).toFixed(2) : '—'}</td>
+        <td>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-ghost btn-sm" onclick="openServiceModal(${s.id})">Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteService(${s.id})">Delete</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function openServiceModal(id) {
+    document.getElementById('service-id').value = id || '';
+    document.getElementById('service-modal-title').textContent = id ? 'Edit Service' : 'Add Service';
+    if (id) {
+      const s = allServices.find(x => x.id === id);
+      document.getElementById('service-name').value = s.name;
+      document.getElementById('service-desc').value = s.description || '';
+      document.getElementById('service-duration').value = s.duration_minutes;
+      document.getElementById('service-price').value = s.price;
+    } else {
+      document.getElementById('service-name').value = '';
+      document.getElementById('service-desc').value = '';
+      document.getElementById('service-duration').value = 60;
+      document.getElementById('service-price').value = 0;
+    }
+    openModal('service-modal');
+  }
+
+  async function saveService() {
+    const id = document.getElementById('service-id').value;
+    const body = {
+      name: document.getElementById('service-name').value.trim(),
+      description: document.getElementById('service-desc').value.trim(),
+      duration_minutes: parseInt(document.getElementById('service-duration').value),
+      price: parseFloat(document.getElementById('service-price').value),
+    };
+    if (!body.name) return alert('Service name is required.');
+    const url = id ? `/api/services/${id}` : '/api/services';
+    const method = id ? 'PUT' : 'POST';
+    await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    closeModal('service-modal');
+    await loadServices();
+  }
+
+  async function deleteService(id) {
+    if (!confirm('Delete this service?')) return;
+    await fetch(`/api/services/${id}`, { method: 'DELETE' });
+    await loadServices();
+    await loadStylists(); // refresh stylist cards too
+  }
+
+  // ─── Stylists ────────────────────────────────────────────────────────────────
+  let allStylists = [];
+
+  async function loadStylists() {
+    const res = await fetch('/api/stylists');
+    allStylists = await res.json();
+    renderStylists();
+  }
+
+  function renderStylists() {
+    const container = document.getElementById('stylists-cards');
+    if (!allStylists.length) {
+      container.innerHTML = '<div class="empty">No stylists yet. Add one to get started.</div>';
+      return;
+    }
+    container.innerHTML = allStylists.map(s => {
+      const serviceTags = s.services.map(sv => `<span class="tag">${esc(sv.name)}</span>`).join('');
+      const workDays = s.schedule.filter(d => d.is_working).map(d => DAYS[d.day_of_week].slice(0,3)).join(', ');
+      return `
+        <div class="card">
+          <div class="card-name">${esc(s.name)}</div>
+          ${s.phone ? `<div class="card-meta">📞 ${esc(s.phone)}</div>` : ''}
+          ${s.email ? `<div class="card-meta">✉ ${esc(s.email)}</div>` : ''}
+          <div style="margin-top:10px">${serviceTags || '<span style="color:#9ca3af;font-size:.8rem">No services assigned</span>'}</div>
+          <div class="card-meta" style="margin-top:8px">🗓 ${workDays || 'No working days set'}</div>
+          <div class="card-actions">
+            <button class="btn btn-ghost btn-sm" onclick="openStylistModal(${s.id})">Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteStylist(${s.id})">Delete</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function openStylistModal(id) {
+    document.getElementById('stylist-id').value = id || '';
+    document.getElementById('stylist-modal-title').textContent = id ? 'Edit Stylist' : 'Add Stylist';
+
+    // Populate services checkboxes
+    const checksContainer = document.getElementById('stylist-services-checks');
+    const stylist = id ? allStylists.find(x => x.id === id) : null;
+    const selectedIds = stylist ? stylist.services.map(s => s.id) : [];
+
+    checksContainer.innerHTML = allServices.length
+      ? allServices.map(s => `
+          <label>
+            <input type="checkbox" value="${s.id}" ${selectedIds.includes(s.id) ? 'checked' : ''} />
+            ${esc(s.name)}
+          </label>
+        `).join('')
+      : '<span style="color:#9ca3af;font-size:.82rem">No services available. Add services first.</span>';
+
+    // Build schedule grid
+    const grid = document.getElementById('schedule-grid');
+    const defaultSchedule = Array.from({length: 7}, (_, i) => ({
+      day_of_week: i, start_time: '09:00', end_time: '17:00', is_working: i < 5 ? 1 : 0
+    }));
+    const schedule = stylist ? stylist.schedule : defaultSchedule;
+
+    grid.innerHTML = schedule.map(s => {
+      const isWorking = s.is_working;
+      return `
+        <div class="schedule-grid" id="sched-row-${s.day_of_week}">
+          <span class="day-label">${DAYS[s.day_of_week]}</span>
+          <input type="time" id="sched-start-${s.day_of_week}" value="${s.start_time}" ${!isWorking ? 'disabled' : ''} />
+          <input type="time" id="sched-end-${s.day_of_week}" value="${s.end_time}" ${!isWorking ? 'disabled' : ''} />
+          <label class="toggle" title="${isWorking ? 'Working' : 'Off'}">
+            <input type="checkbox" id="sched-working-${s.day_of_week}" ${isWorking ? 'checked' : ''}
+              onchange="toggleDayRow(${s.day_of_week}, this.checked)" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      `;
+    }).join('');
+
+    if (stylist) {
+      document.getElementById('stylist-name').value = stylist.name;
+      document.getElementById('stylist-phone').value = stylist.phone || '';
+      document.getElementById('stylist-email').value = stylist.email || '';
+    } else {
+      document.getElementById('stylist-name').value = '';
+      document.getElementById('stylist-phone').value = '';
+      document.getElementById('stylist-email').value = '';
+    }
+
+    openModal('stylist-modal');
+  }
+
+  function toggleDayRow(dayIndex, isWorking) {
+    document.getElementById(`sched-start-${dayIndex}`).disabled = !isWorking;
+    document.getElementById(`sched-end-${dayIndex}`).disabled = !isWorking;
+  }
+
+  async function saveStylist() {
+    const id = document.getElementById('stylist-id').value;
+    const name = document.getElementById('stylist-name').value.trim();
+    if (!name) return alert('Name is required.');
+
+    const service_ids = Array.from(
+      document.querySelectorAll('#stylist-services-checks input[type="checkbox"]:checked')
+    ).map(cb => parseInt(cb.value));
+
+    const schedule = DAYS.map((_, i) => ({
+      day_of_week: i,
+      start_time: document.getElementById(`sched-start-${i}`)?.value || '09:00',
+      end_time: document.getElementById(`sched-end-${i}`)?.value || '17:00',
+      is_working: document.getElementById(`sched-working-${i}`)?.checked ? 1 : 0,
+    }));
+
+    const body = {
+      name,
+      phone: document.getElementById('stylist-phone').value.trim(),
+      email: document.getElementById('stylist-email').value.trim(),
+      service_ids,
+    };
+
+    const url = id ? `/api/stylists/${id}` : '/api/stylists';
+    const method = id ? 'PUT' : 'POST';
+    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const saved = await res.json();
+
+    // Save schedule
+    await fetch(`/api/stylists/${saved.id}/schedule`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ schedule }),
+    });
+
+    closeModal('stylist-modal');
+    await loadStylists();
+  }
+
+  async function deleteStylist(id) {
+    if (!confirm('Delete this stylist?')) return;
+    await fetch(`/api/stylists/${id}`, { method: 'DELETE' });
+    await loadStylists();
+  }
+
+  // ─── API Preview ─────────────────────────────────────────────────────────────
+  async function loadPreview() {
+    const pre = document.getElementById('preview-output');
+    pre.textContent = 'Loading...';
+    try {
+      const res = await fetch('/api/knowledge?format=text');
+      pre.textContent = await res.text();
+    } catch (e) {
+      pre.textContent = 'Error loading preview.';
+    }
+  }
+
+  function copyUrl() {
+    const base = window.location.origin;
+    const url = base + '/api/knowledge?format=text';
+    navigator.clipboard.writeText(url).then(() => alert('URL copied!'));
+    document.getElementById('api-url-text').textContent = url;
+  }
+
+  // ─── Modal helpers ───────────────────────────────────────────────────────────
+  function openModal(id) { document.getElementById(id).classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+  // Close modal on overlay click
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', e => {
+      if (e.target === overlay) overlay.classList.remove('open');
+    });
+  });
+
+  function esc(str) {
+    if (!str) return '';
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ─── Init ─────────────────────────────────────────────────────────────────────
+  (async () => {
+    await loadServices();
+    await loadStylists();
+  })();
+</script>
+</body>
+</html>
