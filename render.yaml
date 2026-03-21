@@ -7,7 +7,3 @@ services:
     envVars:
       - key: PORT
         value: 10000
-    disk:
-      name: salon-data
-      mountPath: /data
-      sizeGB: 1

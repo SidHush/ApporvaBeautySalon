@@ -1,9 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const DATA_PATH = process.env.RENDER
-  ? '/data/salon.json'
-  : path.join(__dirname, 'salon.json');
+// Use DATA_PATH env var if set, otherwise store next to server file
+const DATA_PATH = process.env.DATA_PATH || path.join(__dirname, 'salon.json');
 
 const DEFAULTS = { services: [], stylists: [], stylist_services: [], stylist_schedule: [] };
 
