@@ -4,7 +4,7 @@ const path = require('path');
 // On Render, RENDER env var is automatically set — use persistent disk path
 // Locally, store next to server file
 const DATA_PATH = process.env.DATA_PATH ||
-  (process.env.RENDER ? '/var/data/salon.json' : path.join(__dirname, 'salon.json'));
+  (process.env.RENDER ? '/opt/render/project/src/data/salon.json' : path.join(__dirname, 'salon.json'));
 
 const DEFAULTS = { services: [], stylists: [], stylist_services: [], stylist_schedule: [] };
 

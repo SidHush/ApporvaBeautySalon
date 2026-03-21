@@ -9,5 +9,5 @@ services:
         value: 10000
     disk:
       name: salon-data
-      mountPath: /var/data
+      mountPath: /opt/render/project/src/data
       sizeGB: 1
