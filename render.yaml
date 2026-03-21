@@ -9,5 +9,5 @@ services:
         value: 10000
     disk:
       name: salon-data
-      mountPath: /data
+      mountPath: /var/data
       sizeGB: 1
