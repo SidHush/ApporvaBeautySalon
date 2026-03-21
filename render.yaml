@@ -7,3 +7,9 @@ services:
     envVars:
       - key: PORT
         value: 10000
+      - key: DATA_PATH
+        value: /data/salon.json
+    disk:
+      name: salon-data
+      mountPath: /data
+      sizeGB: 1
