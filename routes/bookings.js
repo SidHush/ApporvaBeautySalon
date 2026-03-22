@@ -23,7 +23,7 @@ router.get('/', (req, res) => {
 // POST /api/bookings  — called by ElevenLabs voice agent
 router.post('/', (req, res) => {
   try {
-    const { services, date, time, duration_minutes, customer_name, customer_phone, stylist } = req.body;
+    const { services, date, time, duration_minutes, customer_name, customer_phone, stylist } = { ...req.query, ...req.body };
 
     // Required field checks
     if (!customer_name) return res.status(400).json({ success: false, message: 'Customer name is required.' });
