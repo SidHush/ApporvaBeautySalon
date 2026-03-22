@@ -215,14 +215,16 @@
     .avail-table th:first-child { position: sticky; left: 0; z-index: 2; background: #f9fafb; }
     .avail-table .today-col { background: #fef9ee !important; }
     .avail-cell {
-      display: block; width: 44px; height: 36px; margin: 0 auto;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      width: 58px; height: 48px; margin: 0 auto;
       border: none; border-radius: 6px; cursor: pointer; transition: all 0.12s;
-      font-size: 0.7rem; font-weight: 600;
+      font-size: 0.68rem; font-weight: 600; line-height: 1.3; gap: 1px;
     }
     .avail-cell.on  { background: #bbf7d0; color: #166534; }
     .avail-cell.off { background: #f3f4f6; color: #9ca3af; }
     .avail-cell.on:hover  { background: #86efac; }
     .avail-cell.off:hover { background: #e5e7eb; }
+    .avail-cell .cell-time { font-size: 0.62rem; font-weight: 400; opacity: 0.8; }
     .avail-legend { display: flex; gap: 16px; font-size: 0.78rem; color: #6b7280; margin-bottom: 14px; align-items: center; }
     .avail-legend span { display: inline-flex; align-items: center; gap: 6px; }
     .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
@@ -764,6 +766,13 @@ We have been voted best salon in the neighbourhood 3 years running"></textarea>
   const MON_ABBR  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   let availGrid   = null;
 
+  function fmtHour(t) {
+    // "09:00" → "9AM", "17:00" → "5PM"
+    const [h] = t.split(':');
+    const hr = parseInt(h);
+    return (hr > 12 ? hr - 12 : hr || 12) + (hr >= 12 ? 'PM' : 'AM');
+  }
+
   async function loadAvailability() {
     const res = await fetch('/api/availability');
     availGrid = await res.json();
@@ -788,12 +797,17 @@ We have been voted best salon in the neighbourhood 3 years running"></textarea>
 
     // Body rows
     const bodyRows = availGrid.stylists.map(stylist => {
-      const cells = stylist.availability.map(({ date, available }) => {
+      const cells = stylist.availability.map(({ date, available, hours }) => {
         const isToday = date === todayStr;
+        const timeLabel = available && hours
+          ? `<span class="cell-time">${fmtHour(hours.start_time)}–${fmtHour(hours.end_time)}</span>`
+          : '';
         return `<td class="${isToday ? 'today-col' : ''}">
           <button class="avail-cell ${available ? 'on' : 'off'}"
             data-sid="${stylist.id}" data-date="${date}" data-avail="${available}"
-            onclick="toggleAvail(this)">${available ? '✓' : '—'}</button>
+            onclick="toggleAvail(this)">
+            <span>${available ? '✓' : '—'}</span>${timeLabel}
+          </button>
         </td>`;
       }).join('');
       return `<tr><td>${esc(stylist.name)}</td>${cells}</tr>`;
@@ -805,14 +819,21 @@ We have been voted best salon in the neighbourhood 3 years running"></textarea>
   }
 
   async function toggleAvail(btn) {
-    const stylistId = btn.dataset.sid;
+    const stylistId = parseInt(btn.dataset.sid);
     const date      = btn.dataset.date;
     const newAvail  = btn.dataset.avail === 'true' ? false : true;
+
+    // Look up hours from grid data for the time label
+    const stylistData = availGrid?.stylists.find(s => s.id === stylistId);
+    const dayData     = stylistData?.availability.find(a => a.date === date);
+    const timeLabel   = newAvail && dayData?.hours
+      ? `<span class="cell-time">${fmtHour(dayData.hours.start_time)}–${fmtHour(dayData.hours.end_time)}</span>`
+      : '';
 
     // Optimistic UI update
     btn.dataset.avail = newAvail;
     btn.className = `avail-cell ${newAvail ? 'on' : 'off'}`;
-    btn.textContent = newAvail ? '✓' : '—';
+    btn.innerHTML = `<span>${newAvail ? '✓' : '—'}</span>${timeLabel}`;
 
     await fetch(`/api/availability/${stylistId}/${date}`, {
       method: 'PUT',
