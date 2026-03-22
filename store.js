@@ -160,6 +160,28 @@ function deleteStylist(id) {
   save(data);
 }
 
+// ── Shared helpers ────────────────────────────────────────────────────────────
+
+// Normalise any date string the agent might send to YYYY-MM-DD
+function normalizeDate(dateStr) {
+  if (!dateStr) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+  const mdy = String(dateStr).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (mdy) return `${mdy[3]}-${mdy[1].padStart(2,'0')}-${mdy[2].padStart(2,'0')}`;
+  return null;
+}
+
+function timeToMins(t) {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function fmtTime(t) {
+  const [h, m] = t.split(':');
+  const hr = parseInt(h);
+  return `${hr > 12 ? hr - 12 : hr || 12}:${m} ${hr >= 12 ? 'PM' : 'AM'}`;
+}
+
 // ── Availability ──────────────────────────────────────────────────────────────
 
 // Is a stylist available on a given date string (YYYY-MM-DD)?
@@ -203,13 +225,56 @@ function getAvailabilityGrid() {
     .map(s => ({
       id: s.id,
       name: s.name,
-      availability: dates.map(date => ({
-        date,
-        available: computeDayAvailability(data, s.id, date),
-        hours: getDayHours(data, s.id, date),
-      })),
+      availability: dates.map(date => {
+        const available = computeDayAvailability(data, s.id, date);
+        const hours     = getDayHours(data, s.id, date);
+
+        const dayBookings = (data.bookings || []).filter(b =>
+          b.status === 'confirmed' &&
+          normalizeDate(b.date) === date &&
+          b.stylist.toLowerCase() === s.name.toLowerCase()
+        );
+        const bookedMinutes    = dayBookings.reduce((sum, b) => sum + (b.duration_minutes || 60), 0);
+        const totalMinutes     = hours ? timeToMins(hours.end_time) - timeToMins(hours.start_time) : 480;
+        const remainingMinutes = Math.max(0, totalMinutes - bookedMinutes);
+
+        return { date, available, hours, bookings_count: dayBookings.length, booked_minutes: bookedMinutes, remaining_minutes: remainingMinutes };
+      }),
     }));
   return { dates, stylists };
+}
+
+// Voice-agent endpoint: only open days with time still remaining
+function getOpenings() {
+  const data = load();
+  const dates = next14Dates();
+
+  return data.stylists
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(stylist => {
+      const open_days = dates.reduce((acc, date) => {
+        if (!computeDayAvailability(data, stylist.id, date)) return acc;
+
+        const hours        = getDayHours(data, stylist.id, date);
+        const totalMins    = hours ? timeToMins(hours.end_time) - timeToMins(hours.start_time) : 480;
+        const bookedMins   = (data.bookings || [])
+          .filter(b => b.status === 'confirmed' && normalizeDate(b.date) === date && b.stylist.toLowerCase() === stylist.name.toLowerCase())
+          .reduce((sum, b) => sum + (b.duration_minutes || 60), 0);
+        const remainingMins = Math.max(0, totalMins - bookedMins);
+
+        if (remainingMins > 0) {
+          acc.push({
+            date,
+            hours: hours ? `${fmtTime(hours.start_time)} – ${fmtTime(hours.end_time)}` : null,
+            remaining_minutes: remainingMins,
+            booked_minutes: bookedMins,
+          });
+        }
+        return acc;
+      }, []);
+
+      return { name: stylist.name, open_days };
+    });
 }
 
 function setAvailabilityOverride(stylist_id, date, available) {
@@ -284,7 +349,7 @@ module.exports = {
   getServices, getService, createService, updateService, deleteService,
   getStylists, getStylist, createStylist, updateStylist, updateSchedule, deleteStylist,
   getAbout, saveAbout,
-  getAvailabilityGrid, setAvailabilityOverride, next14Dates, computeDayAvailability,
+  getAvailabilityGrid, getOpenings, setAvailabilityOverride, next14Dates, computeDayAvailability, normalizeDate,
   getBookings, createBooking, updateBookingStatus, deleteBooking,
   load,
 };

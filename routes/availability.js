@@ -11,6 +11,17 @@ router.get('/', (req, res) => {
   }
 });
 
+// GET  /api/availability/openings  — voice agent: stylists with remaining open time per day
+// Returns only days that are available AND still have unbooked time remaining.
+// Use this before booking to confirm a stylist has capacity on the requested date.
+router.get('/openings', (req, res) => {
+  try {
+    res.json(store.getOpenings());
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // PUT  /api/availability/:stylist_id/:date  — toggle one cell
 // body: { available: true | false }
 router.put('/:stylist_id/:date', (req, res) => {
