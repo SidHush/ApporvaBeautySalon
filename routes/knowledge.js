@@ -108,24 +108,6 @@ function buildText(data) {
     }
   }
 
-  // Availability
-  lines.push('', 'STYLIST AVAILABILITY — NEXT 14 DAYS:');
-  if (!data.availability || !data.availability.length) {
-    lines.push('  No stylists listed yet.');
-  } else {
-    for (const s of data.availability) {
-      if (!s.available_dates.length) {
-        lines.push(`  ${s.name}: Not available in the next 14 days`);
-      } else {
-        lines.push(`  ${s.name}:`);
-        for (const d of s.available_dates) {
-          const timeStr = d.hours ? ` (${d.hours})` : '';
-          lines.push(`    ${friendlyDate(d.date)}${timeStr}`);
-        }
-      }
-    }
-  }
-
   return lines.join('\n');
 }
 
