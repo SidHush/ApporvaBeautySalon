@@ -184,6 +184,28 @@
 
     .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; }
 
+    /* About form */
+    .about-form { background: #fff; border-radius: 10px; padding: 28px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    .about-form .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .about-form .form-row-full { grid-column: 1 / -1; }
+    .check-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+    .check-group label {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 0.83rem; font-weight: 400; color: #1a1a1a;
+      padding: 5px 12px; border: 1px solid #e5e7eb; border-radius: 20px; cursor: pointer;
+      transition: all 0.15s;
+    }
+    .check-group label:hover { background: #f9fafb; border-color: #c9a96e; }
+    .check-group input[type="checkbox"] { width: 13px; height: 13px; accent-color: #c9a96e; }
+    .check-group label:has(input:checked) { background: #fef9ee; border-color: #c9a96e; color: #92640a; font-weight: 500; }
+    .save-bar { display: flex; align-items: center; gap: 14px; margin-top: 24px; justify-content: flex-end; }
+    .toast {
+      display: none; background: #dcfce7; color: #166534;
+      border: 1px solid #86efac; border-radius: 6px;
+      padding: 7px 14px; font-size: 0.82rem; font-weight: 500;
+    }
+    .toast.show { display: inline-block; }
+
     /* Empty state */
     .empty { text-align: center; padding: 48px 24px; color: #9ca3af; font-size: 0.9rem; }
 
@@ -224,13 +246,82 @@
 </header>
 
 <nav>
-  <button class="active" data-tab="services">Services</button>
+  <button class="active" data-tab="about">About Salon</button>
+  <button data-tab="services">Services</button>
   <button data-tab="stylists">Stylists</button>
   <button data-tab="preview">API Preview</button>
 </nav>
 
+<!-- ==================== ABOUT TAB ==================== -->
+<div id="tab-about" class="tab-content active">
+  <div class="container">
+    <div class="section-header">
+      <h2>About the Salon</h2>
+      <div class="save-bar">
+        <span class="toast" id="about-toast">Saved!</span>
+        <button class="btn btn-primary" onclick="saveAbout()">Save Changes</button>
+      </div>
+    </div>
+    <div class="about-form">
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Salon Name</label>
+          <input type="text" id="about-name" placeholder="Apoorva Hair Salon" />
+        </div>
+        <div class="form-group">
+          <label>Phone Number</label>
+          <input type="tel" id="about-phone" placeholder="e.g. (555) 123-4567" />
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="about-email" placeholder="e.g. hello@apoorvasalon.com" />
+        </div>
+        <div class="form-group">
+          <label>Website</label>
+          <input type="text" id="about-website" placeholder="e.g. www.apoorvasalon.com" />
+        </div>
+        <div class="form-group" style="grid-column: 1 / -1">
+          <label>Address</label>
+          <input type="text" id="about-address" placeholder="e.g. 123 Main Street, New York, NY 10001" />
+        </div>
+        <div class="form-group" style="grid-column: 1 / -1">
+          <label>Working Hours</label>
+          <input type="text" id="about-hours" placeholder="e.g. Monday–Friday: 9:00 AM – 5:00 PM, Saturday: 10:00 AM – 3:00 PM" />
+        </div>
+        <div class="form-group" style="grid-column: 1 / -1">
+          <label>About Us <span style="color:#9ca3af;font-weight:400">(a short description of the salon)</span></label>
+          <textarea id="about-description" rows="3" placeholder="e.g. A family-owned salon serving the community since 2005, specialising in modern cuts and colour..."></textarea>
+        </div>
+        <div class="form-group" style="grid-column: 1 / -1">
+          <label>Interesting Facts <span style="color:#9ca3af;font-weight:400">(one per line)</span></label>
+          <textarea id="about-facts" rows="4" placeholder="e.g.
+We use only cruelty-free and vegan products
+Our head stylist trained in Paris
+We have been voted best salon in the neighbourhood 3 years running"></textarea>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Payments Accepted</label>
+        <div class="check-group" id="payments-group">
+          <!-- rendered by JS -->
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-top:16px">
+        <label>Languages Spoken</label>
+        <div class="check-group" id="languages-group">
+          <!-- rendered by JS -->
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <!-- ==================== SERVICES TAB ==================== -->
-<div id="tab-services" class="tab-content active">
+<div id="tab-services" class="tab-content">
   <div class="container">
     <div class="section-header">
       <h2>Services</h2>
@@ -357,6 +448,60 @@
       if (btn.dataset.tab === 'preview') loadPreview();
     });
   });
+
+  // ─── About ───────────────────────────────────────────────────────────────────
+  const PAYMENT_OPTIONS = ['Cash', 'Visa', 'Mastercard', 'Amex', 'Discover', 'Debit Card', 'Apple Pay', 'Google Pay', 'Zelle', 'Venmo', 'PayPal', 'Check'];
+  const LANGUAGE_OPTIONS = ['English', 'Spanish', 'Hindi', 'Punjabi', 'Mandarin', 'Cantonese', 'French', 'Portuguese', 'Arabic', 'Tagalog', 'Italian', 'Korean'];
+
+  function buildCheckGroup(containerId, options, selected) {
+    const el = document.getElementById(containerId);
+    el.innerHTML = options.map(opt => `
+      <label>
+        <input type="checkbox" value="${esc(opt)}" ${selected.includes(opt) ? 'checked' : ''} />
+        ${esc(opt)}
+      </label>
+    `).join('');
+  }
+
+  function getChecked(containerId) {
+    return Array.from(document.querySelectorAll(`#${containerId} input:checked`)).map(cb => cb.value);
+  }
+
+  async function loadAbout() {
+    const res = await fetch('/api/about');
+    const a = await res.json();
+    document.getElementById('about-name').value        = a.name || '';
+    document.getElementById('about-phone').value       = a.phone || '';
+    document.getElementById('about-email').value       = a.email || '';
+    document.getElementById('about-website').value     = a.website || '';
+    document.getElementById('about-address').value     = a.address || '';
+    document.getElementById('about-hours').value       = a.working_hours || '';
+    document.getElementById('about-description').value = a.description || '';
+    document.getElementById('about-facts').value       = (a.facts || []).join('\n');
+    buildCheckGroup('payments-group', PAYMENT_OPTIONS, a.payments_accepted || []);
+    buildCheckGroup('languages-group', LANGUAGE_OPTIONS, a.languages || []);
+  }
+
+  async function saveAbout() {
+    const factsRaw = document.getElementById('about-facts').value;
+    const facts = factsRaw.split('\n').map(l => l.trim()).filter(Boolean);
+    const body = {
+      name:              document.getElementById('about-name').value.trim(),
+      phone:             document.getElementById('about-phone').value.trim(),
+      email:             document.getElementById('about-email').value.trim(),
+      website:           document.getElementById('about-website').value.trim(),
+      address:           document.getElementById('about-address').value.trim(),
+      working_hours:     document.getElementById('about-hours').value.trim(),
+      description:       document.getElementById('about-description').value.trim(),
+      facts,
+      payments_accepted: getChecked('payments-group'),
+      languages:         getChecked('languages-group'),
+    };
+    await fetch('/api/about', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const toast = document.getElementById('about-toast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2500);
+  }
 
   // ─── Services ────────────────────────────────────────────────────────────────
   let allServices = [];
@@ -605,8 +750,7 @@
 
   // ─── Init ─────────────────────────────────────────────────────────────────────
   (async () => {
-    await loadServices();
-    await loadStylists();
+    await Promise.all([loadAbout(), loadServices(), loadStylists()]);
   })();
 </script>
 </body>

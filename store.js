@@ -6,7 +6,24 @@ const path = require('path');
 const DATA_PATH = process.env.DATA_PATH ||
   (process.env.RENDER ? '/opt/render/project/src/data/salon.json' : path.join(__dirname, 'salon.json'));
 
-const DEFAULTS = { services: [], stylists: [], stylist_services: [], stylist_schedule: [] };
+const DEFAULTS = {
+  about: {
+    name: 'Apoorva Hair Salon',
+    address: '',
+    phone: '',
+    email: '',
+    website: '',
+    description: '',
+    facts: [],
+    working_hours: 'Monday–Friday: 9:00 AM – 5:00 PM',
+    payments_accepted: [],
+    languages: [],
+  },
+  services: [],
+  stylists: [],
+  stylist_services: [],
+  stylist_schedule: [],
+};
 
 function load() {
   try {
@@ -141,8 +158,23 @@ function deleteStylist(id) {
   save(data);
 }
 
+// ── About ─────────────────────────────────────────────────────────────────────
+
+function getAbout() {
+  const data = load();
+  return data.about || { ...DEFAULTS.about };
+}
+
+function saveAbout(fields) {
+  const data = load();
+  data.about = { ...(data.about || DEFAULTS.about), ...fields };
+  save(data);
+  return data.about;
+}
+
 module.exports = {
   getServices, getService, createService, updateService, deleteService,
   getStylists, getStylist, createStylist, updateStylist, updateSchedule, deleteStylist,
+  getAbout, saveAbout,
   load,
 };
