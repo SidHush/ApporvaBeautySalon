@@ -207,28 +207,34 @@
     .toast.show { display: inline-block; }
 
     /* Availability grid */
+    .avail-week { margin-bottom: 28px; }
+    .avail-week-label { font-size: 0.75rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px; }
     .avail-wrapper { overflow-x: auto; }
-    .avail-table { border-collapse: collapse; background: #fff; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); min-width: 100%; }
-    .avail-table th, .avail-table td { padding: 8px 6px; text-align: center; font-size: 0.78rem; border: 1px solid #f3f4f6; }
+    .avail-table { border-collapse: collapse; background: #fff; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); width: 100%; }
+    .avail-table th, .avail-table td { padding: 6px; text-align: center; font-size: 0.78rem; border: 1px solid #f3f4f6; }
     .avail-table th { background: #f9fafb; color: #6b7280; font-weight: 600; white-space: nowrap; }
-    .avail-table td:first-child { text-align: left; font-weight: 600; font-size: 0.85rem; padding: 8px 16px; white-space: nowrap; min-width: 130px; position: sticky; left: 0; background: #fff; z-index: 1; }
-    .avail-table th:first-child { position: sticky; left: 0; z-index: 2; background: #f9fafb; }
+    .avail-table td.stylist-col { text-align: left; font-weight: 600; font-size: 0.85rem; padding: 8px 14px; white-space: nowrap; min-width: 120px; background: #fff; position: sticky; left: 0; z-index: 1; }
+    .avail-table th:first-child { position: sticky; left: 0; z-index: 2; background: #f9fafb; min-width: 120px; }
     .avail-table .today-col { background: #fef9ee !important; }
     .avail-cell {
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      width: 72px; height: 58px; margin: 0 auto;
-      border: none; border-radius: 6px; cursor: pointer; transition: all 0.12s;
-      font-size: 0.68rem; font-weight: 600; line-height: 1.3; gap: 1px;
+      display: flex; flex-direction: column; align-items: flex-start;
+      width: 100%; min-height: 52px; padding: 5px 7px;
+      border: none; border-radius: 6px; cursor: pointer;
+      text-align: left; gap: 2px; transition: opacity 0.15s;
     }
-    .avail-cell.on  { background: #bbf7d0; color: #166534; }
-    .avail-cell.off { background: #f3f4f6; color: #9ca3af; }
-    .avail-cell.on:hover  { background: #86efac; }
+    .avail-cell.on  { background: #dcfce7; }
+    .avail-cell.off { background: #f3f4f6; align-items: center; justify-content: center; }
+    .avail-cell.on:hover  { opacity: 0.75; }
     .avail-cell.off:hover { background: #e5e7eb; }
-    .avail-cell .cell-time   { font-size: 0.62rem; font-weight: 400; opacity: 0.8; }
-    .avail-cell .cell-booked { font-size: 0.58rem; font-weight: 600; color: #d97706; margin-top: 1px; }
-    .avail-legend { display: flex; gap: 16px; font-size: 0.78rem; color: #6b7280; margin-bottom: 14px; align-items: center; }
+    .cell-hours   { font-size: 0.64rem; color: #166534; font-weight: 600; }
+    .cell-off-txt { font-size: 0.75rem; color: #9ca3af; }
+    .booking-slot { width: 100%; background: #fff7ed; border-left: 2px solid #f97316; border-radius: 2px; padding: 2px 4px; margin-top: 2px; }
+    .booking-slot-time { font-size: 0.62rem; font-weight: 700; color: #c2410c; display: block; }
+    .booking-slot-info { font-size: 0.59rem; color: #9a3412; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90px; }
+    .avail-legend { display: flex; gap: 16px; font-size: 0.78rem; color: #6b7280; margin-bottom: 16px; align-items: center; flex-wrap: wrap; }
     .avail-legend span { display: inline-flex; align-items: center; gap: 6px; }
-    .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+    .legend-booking { width: 12px; height: 12px; border-radius: 2px; background: #fff7ed; border-left: 3px solid #f97316; flex-shrink: 0; }
 
     /* Booking status badges */
     .badge {
@@ -407,14 +413,11 @@ We have been voted best salon in the neighbourhood 3 years running"></textarea>
       Defaults come from each stylist's weekly schedule — only exceptions need changing.
     </p>
     <div class="avail-legend">
-      <span><span class="legend-dot" style="background:#bbf7d0"></span> Available</span>
+      <span><span class="legend-dot" style="background:#dcfce7"></span> Available</span>
       <span><span class="legend-dot" style="background:#f3f4f6"></span> Unavailable</span>
+      <span><span class="legend-booking"></span> Confirmed booking</span>
     </div>
-    <div class="avail-wrapper">
-      <table class="avail-table" id="avail-table">
-        <tbody><tr><td colspan="15" class="empty">Loading...</td></tr></tbody>
-      </table>
-    </div>
+    <div id="avail-table"><div class="empty">Loading...</div></div>
   </div>
 </div>
 
@@ -821,52 +824,92 @@ We have been voted best salon in the neighbourhood 3 years running"></textarea>
     return (hr > 12 ? hr - 12 : hr || 12) + (hr >= 12 ? 'PM' : 'AM');
   }
 
+  function normDate(s) {
+    if (!s) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    const m = String(s).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    return m ? `${m[3]}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}` : s;
+  }
+
   async function loadAvailability() {
-    const res = await fetch('/api/availability');
-    availGrid = await res.json();
+    const [availRes, bookRes] = await Promise.all([
+      fetch('/api/availability'),
+      fetch('/api/bookings'),
+    ]);
+    availGrid   = await availRes.json();
+    allBookings = await bookRes.json();
     renderAvailability();
   }
 
   function renderAvailability() {
-    const table = document.getElementById('avail-table');
+    const container = document.getElementById('avail-table');
     if (!availGrid || !availGrid.stylists.length) {
-      table.innerHTML = '<tbody><tr><td colspan="15" class="empty">No stylists yet. Add stylists first.</td></tr></tbody>';
+      container.innerHTML = '<div class="empty">No stylists yet. Add stylists first.</div>';
       return;
     }
 
     const todayStr = new Date().toISOString().split('T')[0];
+    const week1 = availGrid.dates.slice(0, 7);
+    const week2 = availGrid.dates.slice(7);
 
-    // Header row
-    const headCells = availGrid.dates.map(d => {
-      const dt = new Date(d + 'T00:00:00Z');
-      const isToday = d === todayStr;
-      return `<th class="${isToday ? 'today-col' : ''}">${DAY_ABBR[dt.getUTCDay()]}<br>${dt.getUTCDate()} ${MON_ABBR[dt.getUTCMonth()]}</th>`;
-    }).join('');
-
-    // Body rows
-    const bodyRows = availGrid.stylists.map(stylist => {
-      const cells = stylist.availability.map(({ date, available, hours, bookings_count, remaining_minutes }) => {
-        const isToday = date === todayStr;
-        const timeLabel    = available && hours
-          ? `<span class="cell-time">${fmtHour(hours.start_time)}–${fmtHour(hours.end_time)}</span>`
-          : '';
-        const bookedLabel  = available && bookings_count > 0
-          ? `<span class="cell-booked">${bookings_count} booked · ${remaining_minutes}m left</span>`
-          : '';
-        return `<td class="${isToday ? 'today-col' : ''}">
-          <button class="avail-cell ${available ? 'on' : 'off'}"
-            data-sid="${stylist.id}" data-date="${date}" data-avail="${available}"
-            onclick="toggleAvail(this)">
-            <span>${available ? '✓' : '—'}</span>${timeLabel}${bookedLabel}
-          </button>
-        </td>`;
+    function buildWeekTable(weekDates, label) {
+      const headCells = weekDates.map(d => {
+        const dt = new Date(d + 'T00:00:00Z');
+        return `<th class="${d === todayStr ? 'today-col' : ''}">${DAY_ABBR[dt.getUTCDay()]}<br>${dt.getUTCDate()} ${MON_ABBR[dt.getUTCMonth()]}</th>`;
       }).join('');
-      return `<tr><td>${esc(stylist.name)}</td>${cells}</tr>`;
-    }).join('');
 
-    table.innerHTML = `
-      <thead><tr><th>Stylist</th>${headCells}</tr></thead>
-      <tbody>${bodyRows}</tbody>`;
+      const bodyRows = availGrid.stylists.map(stylist => {
+        const cells = weekDates.map(date => {
+          const dayData  = stylist.availability.find(a => a.date === date) || {};
+          const { available, hours } = dayData;
+          const isToday  = date === todayStr;
+
+          const dayBookings = allBookings.filter(b =>
+            b.status === 'confirmed' &&
+            normDate(b.date) === date &&
+            b.stylist.toLowerCase() === stylist.name.toLowerCase()
+          );
+
+          let inner;
+          if (!available) {
+            inner = `<span class="cell-off-txt">—</span>`;
+          } else {
+            const hoursStr = hours
+              ? `<span class="cell-hours">${fmtHour(hours.start_time)}–${fmtHour(hours.end_time)}</span>`
+              : '';
+            const slots = dayBookings.map(b => `
+              <div class="booking-slot">
+                <span class="booking-slot-time">${esc(b.time)}</span>
+                <span class="booking-slot-info" title="${esc(b.services)} · ${esc(b.customer_name)}">${esc(b.services)} · ${esc(b.customer_name)}</span>
+              </div>`).join('');
+            inner = hoursStr + slots;
+          }
+
+          return `<td class="${isToday ? 'today-col' : ''}">
+            <button class="avail-cell ${available ? 'on' : 'off'}${available && dayBookings.length ? ' has-bookings' : ''}"
+              data-sid="${stylist.id}" data-date="${date}" data-avail="${available}"
+              onclick="toggleAvail(this)">${inner}</button>
+          </td>`;
+        }).join('');
+
+        return `<tr><td class="stylist-col">${esc(stylist.name)}</td>${cells}</tr>`;
+      }).join('');
+
+      return `
+        <div class="avail-week">
+          <div class="avail-week-label">${label}</div>
+          <div class="avail-wrapper">
+            <table class="avail-table">
+              <thead><tr><th></th>${headCells}</tr></thead>
+              <tbody>${bodyRows}</tbody>
+            </table>
+          </div>
+        </div>`;
+    }
+
+    container.innerHTML =
+      buildWeekTable(week1, 'This Week') +
+      buildWeekTable(week2, 'Next Week');
   }
 
   async function toggleAvail(btn) {
@@ -874,17 +917,14 @@ We have been voted best salon in the neighbourhood 3 years running"></textarea>
     const date      = btn.dataset.date;
     const newAvail  = btn.dataset.avail === 'true' ? false : true;
 
-    // Look up hours from grid data for the time label
-    const stylistData = availGrid?.stylists.find(s => s.id === stylistId);
-    const dayData     = stylistData?.availability.find(a => a.date === date);
-    const timeLabel   = newAvail && dayData?.hours
-      ? `<span class="cell-time">${fmtHour(dayData.hours.start_time)}–${fmtHour(dayData.hours.end_time)}</span>`
+    const dayData  = availGrid?.stylists.find(s => s.id === stylistId)?.availability.find(a => a.date === date);
+    const hoursStr = newAvail && dayData?.hours
+      ? `<span class="cell-hours">${fmtHour(dayData.hours.start_time)}–${fmtHour(dayData.hours.end_time)}</span>`
       : '';
 
-    // Optimistic UI update
     btn.dataset.avail = newAvail;
-    btn.className = `avail-cell ${newAvail ? 'on' : 'off'}`;
-    btn.innerHTML = `<span>${newAvail ? '✓' : '—'}</span>${timeLabel}`;
+    btn.className     = `avail-cell ${newAvail ? 'on' : 'off'}`;
+    btn.innerHTML     = newAvail ? hoursStr : `<span class="cell-off-txt">—</span>`;
 
     await fetch(`/api/availability/${stylistId}/${date}`, {
       method: 'PUT',
