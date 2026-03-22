@@ -176,10 +176,58 @@ function timeToMins(t) {
   return h * 60 + m;
 }
 
+function minsToFmt(mins) {
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const display = h > 12 ? h - 12 : h === 0 ? 12 : h;
+  return `${display}:${String(m).padStart(2, '0')} ${ampm}`;
+}
+
 function fmtTime(t) {
   const [h, m] = t.split(':');
   const hr = parseInt(h);
   return `${hr > 12 ? hr - 12 : hr || 12}:${m} ${hr >= 12 ? 'PM' : 'AM'}`;
+}
+
+// Parse flexible time strings the agent might send:
+// "3PM", "3:30PM", "3:00 PM", "15:00", "9AM", "9:00 AM"
+function parseTimeToMins(timeStr) {
+  if (!timeStr) return null;
+  const s = String(timeStr).trim().toUpperCase().replace(/\s+/g, '');
+
+  // 24-hour "15:00"
+  const mil = s.match(/^(\d{1,2}):(\d{2})$/);
+  if (mil) return parseInt(mil[1]) * 60 + parseInt(mil[2]);
+
+  // 12-hour "3PM", "3:30PM"
+  const twelve = s.match(/^(\d{1,2})(?::(\d{2}))?(AM|PM)$/);
+  if (twelve) {
+    let h = parseInt(twelve[1]);
+    const m = parseInt(twelve[2] || '0');
+    if (twelve[3] === 'PM' && h !== 12) h += 12;
+    if (twelve[3] === 'AM' && h === 12) h = 0;
+    return h * 60 + m;
+  }
+  return null;
+}
+
+// Given a working window and a list of booked {start, end} in mins,
+// return the gaps as free windows.
+function computeFreeWindows(workStart, workEnd, slots) {
+  const sorted = [...slots].sort((a, b) => a.start - b.start);
+  const windows = [];
+  let cursor = workStart;
+  for (const slot of sorted) {
+    if (slot.start > cursor) {
+      windows.push({ from: minsToFmt(cursor), until: minsToFmt(slot.start), duration_minutes: slot.start - cursor });
+    }
+    cursor = Math.max(cursor, slot.end);
+  }
+  if (cursor < workEnd) {
+    windows.push({ from: minsToFmt(cursor), until: minsToFmt(workEnd), duration_minutes: workEnd - cursor });
+  }
+  return windows;
 }
 
 // ── Availability ──────────────────────────────────────────────────────────────
@@ -244,7 +292,7 @@ function getAvailabilityGrid() {
   return { dates, stylists };
 }
 
-// Voice-agent endpoint: only open days with time still remaining
+// Voice-agent endpoint: exact free windows per day, accounting for confirmed bookings
 function getOpenings() {
   const data = load();
   const dates = next14Dates();
@@ -255,19 +303,39 @@ function getOpenings() {
       const open_days = dates.reduce((acc, date) => {
         if (!computeDayAvailability(data, stylist.id, date)) return acc;
 
-        const hours        = getDayHours(data, stylist.id, date);
-        const totalMins    = hours ? timeToMins(hours.end_time) - timeToMins(hours.start_time) : 480;
-        const bookedMins   = (data.bookings || [])
-          .filter(b => b.status === 'confirmed' && normalizeDate(b.date) === date && b.stylist.toLowerCase() === stylist.name.toLowerCase())
-          .reduce((sum, b) => sum + (b.duration_minutes || 60), 0);
-        const remainingMins = Math.max(0, totalMins - bookedMins);
+        const hours     = getDayHours(data, stylist.id, date);
+        const workStart = hours ? timeToMins(hours.start_time) : 9 * 60;   // default 9 AM
+        const workEnd   = hours ? timeToMins(hours.end_time)   : 17 * 60;  // default 5 PM
 
-        if (remainingMins > 0) {
+        // Build booked slots from confirmed bookings where we can parse the time
+        const dayBookings = (data.bookings || []).filter(b =>
+          b.status === 'confirmed' &&
+          normalizeDate(b.date) === date &&
+          b.stylist.toLowerCase() === stylist.name.toLowerCase()
+        );
+
+        const bookedSlots = dayBookings.flatMap(b => {
+          const start = parseTimeToMins(b.time);
+          if (start === null) return [];  // unparseable time — skip
+          const end = Math.min(start + (b.duration_minutes || 60), workEnd);
+          return [{ start, end, service: b.services, customer: b.customer_name, time: b.time, duration_minutes: b.duration_minutes || 60 }];
+        });
+
+        const freeWindows = computeFreeWindows(workStart, workEnd, bookedSlots);
+
+        // Only include the day if at least one free window exists
+        if (freeWindows.length > 0) {
           acc.push({
             date,
-            hours: hours ? `${fmtTime(hours.start_time)} – ${fmtTime(hours.end_time)}` : null,
-            remaining_minutes: remainingMins,
-            booked_minutes: bookedMins,
+            working_hours: `${fmtTime(hours ? hours.start_time : '09:00')} – ${fmtTime(hours ? hours.end_time : '17:00')}`,
+            booked_slots: bookedSlots.map(s => ({
+              from: minsToFmt(s.start),
+              until: minsToFmt(s.end),
+              duration_minutes: s.duration_minutes,
+              service: s.service,
+              customer: s.customer,
+            })),
+            free_windows: freeWindows,
           });
         }
         return acc;
