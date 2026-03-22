@@ -24,6 +24,7 @@ const DEFAULTS = {
   stylist_services: [],
   stylist_schedule: [],
   availability_overrides: [],
+  bookings: [],
 };
 
 function load() {
@@ -237,9 +238,53 @@ function saveAbout(fields) {
   return data.about;
 }
 
+// ── Bookings ──────────────────────────────────────────────────────────────────
+
+function getBookings() {
+  const data = load();
+  return (data.bookings || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+}
+
+function createBooking({ services, date, time, duration_minutes, customer_name, customer_phone, stylist }) {
+  const data = load();
+  if (!data.bookings) data.bookings = [];
+  const booking = {
+    id: nextId(data.bookings),
+    services,
+    date,
+    time,
+    duration_minutes: parseInt(duration_minutes) || 60,
+    customer_name,
+    customer_phone: customer_phone || null,
+    stylist,
+    status: 'confirmed',
+    created_at: new Date().toISOString(),
+  };
+  data.bookings.push(booking);
+  save(data);
+  return booking;
+}
+
+function updateBookingStatus(id, status) {
+  const data = load();
+  const idx = (data.bookings || []).findIndex(b => b.id === id);
+  if (idx === -1) return null;
+  data.bookings[idx].status = status;
+  save(data);
+  return data.bookings[idx];
+}
+
+function deleteBooking(id) {
+  const data = load();
+  data.bookings = (data.bookings || []).filter(b => b.id !== id);
+  save(data);
+}
+
 module.exports = {
   getServices, getService, createService, updateService, deleteService,
   getStylists, getStylist, createStylist, updateStylist, updateSchedule, deleteStylist,
   getAbout, saveAbout,
-  getAvailabilityGrid, setAvailabilityOverride, next14Dates, computeDayAvailability, load,
+  getAvailabilityGrid, setAvailabilityOverride, next14Dates, computeDayAvailability,
+  getBookings, createBooking, updateBookingStatus, deleteBooking,
+  load,
 };

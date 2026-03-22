@@ -229,6 +229,18 @@
     .avail-legend span { display: inline-flex; align-items: center; gap: 6px; }
     .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
 
+    /* Booking status badges */
+    .badge {
+      display: inline-block; padding: 3px 10px; border-radius: 20px;
+      font-size: 0.73rem; font-weight: 600; text-transform: capitalize;
+    }
+    .badge-confirmed  { background: #dbeafe; color: #1d4ed8; }
+    .badge-completed  { background: #f3f4f6; color: #6b7280; }
+    .badge-cancelled  { background: #fee2e2; color: #b91c1c; }
+    .booking-filters { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .filter-btn { background: #f3f4f6; color: #374151; border: none; padding: 5px 14px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; }
+    .filter-btn.active { background: #1a1a1a; color: #fff; }
+
     /* Empty state */
     .empty { text-align: center; padding: 48px 24px; color: #9ca3af; font-size: 0.9rem; }
 
@@ -273,6 +285,7 @@
   <button data-tab="services">Services</button>
   <button data-tab="stylists">Stylists</button>
   <button data-tab="availability">Availability</button>
+  <button data-tab="bookings">Bookings</button>
   <button data-tab="preview">API Preview</button>
 </nav>
 
@@ -404,6 +417,39 @@ We have been voted best salon in the neighbourhood 3 years running"></textarea>
   </div>
 </div>
 
+<!-- ==================== BOOKINGS TAB ==================== -->
+<div id="tab-bookings" class="tab-content">
+  <div class="container">
+    <div class="section-header">
+      <h2>Bookings</h2>
+      <button class="btn btn-ghost" onclick="loadBookings()">↻ Refresh</button>
+    </div>
+    <div class="booking-filters">
+      <button class="filter-btn active" data-filter="all"     onclick="setFilter(this)">All</button>
+      <button class="filter-btn"        data-filter="confirmed" onclick="setFilter(this)">Confirmed</button>
+      <button class="filter-btn"        data-filter="completed" onclick="setFilter(this)">Completed</button>
+      <button class="filter-btn"        data-filter="cancelled" onclick="setFilter(this)">Cancelled</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Date & Time</th>
+          <th>Customer</th>
+          <th>Service</th>
+          <th>Stylist</th>
+          <th>Duration</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="bookings-tbody">
+        <tr><td colspan="8" class="empty">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
 <!-- ==================== API PREVIEW TAB ==================== -->
 <div id="tab-preview" class="tab-content">
   <div class="container">
@@ -494,6 +540,7 @@ We have been voted best salon in the neighbourhood 3 years running"></textarea>
       document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
       if (btn.dataset.tab === 'preview') loadPreview();
       if (btn.dataset.tab === 'availability') loadAvailability();
+      if (btn.dataset.tab === 'bookings') loadBookings();
     });
   });
 
@@ -840,6 +887,78 @@ We have been voted best salon in the neighbourhood 3 years running"></textarea>
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ available: newAvail }),
     });
+  }
+
+  // ─── Bookings ────────────────────────────────────────────────────────────────
+  let allBookings = [];
+  let activeFilter = 'all';
+
+  async function loadBookings() {
+    const res = await fetch('/api/bookings');
+    allBookings = await res.json();
+    renderBookings();
+  }
+
+  function setFilter(btn) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeFilter = btn.dataset.filter;
+    renderBookings();
+  }
+
+  function renderBookings() {
+    const tbody = document.getElementById('bookings-tbody');
+    const list = activeFilter === 'all' ? allBookings : allBookings.filter(b => b.status === activeFilter);
+
+    if (!list.length) {
+      tbody.innerHTML = `<tr><td colspan="8" class="empty">${activeFilter === 'all' ? 'No bookings yet.' : 'No ' + activeFilter + ' bookings.'}</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = list.map(b => `
+      <tr style="${b.status === 'cancelled' ? 'opacity:0.55' : ''}">
+        <td style="color:#9ca3af">#${b.id}</td>
+        <td>
+          <strong>${esc(b.date)}</strong><br>
+          <span style="color:#6b7280;font-size:.8rem">${esc(b.time)}${b.duration_minutes ? ' · ' + b.duration_minutes + ' min' : ''}</span>
+        </td>
+        <td>
+          <strong>${esc(b.customer_name)}</strong><br>
+          ${b.customer_phone ? `<span style="color:#6b7280;font-size:.8rem">📞 ${esc(b.customer_phone)}</span>` : ''}
+        </td>
+        <td>${esc(b.services || '—')}</td>
+        <td>${esc(b.stylist || '—')}</td>
+        <td>${b.duration_minutes ? b.duration_minutes + ' min' : '—'}</td>
+        <td><span class="badge badge-${b.status}">${b.status}</span></td>
+        <td>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            ${b.status === 'confirmed' ? `
+              <button class="btn btn-ghost btn-sm" onclick="updateStatus(${b.id},'completed')">✓ Complete</button>
+              <button class="btn btn-ghost btn-sm" onclick="updateStatus(${b.id},'cancelled')">✕ Cancel</button>
+            ` : ''}
+            ${b.status === 'cancelled' ? `
+              <button class="btn btn-ghost btn-sm" onclick="updateStatus(${b.id},'confirmed')">↩ Restore</button>
+            ` : ''}
+            <button class="btn btn-danger btn-sm" onclick="deleteBooking(${b.id})">Delete</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  async function updateStatus(id, status) {
+    await fetch(`/api/bookings/${id}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    });
+    await loadBookings();
+  }
+
+  async function deleteBooking(id) {
+    if (!confirm('Delete this booking?')) return;
+    await fetch(`/api/bookings/${id}`, { method: 'DELETE' });
+    await loadBookings();
   }
 
   // ─── API Preview ─────────────────────────────────────────────────────────────
