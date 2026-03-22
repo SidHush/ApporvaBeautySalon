@@ -12,6 +12,14 @@ function formatTime(time) {
   return `${display}:${m} ${ampm}`;
 }
 
+const SHORT_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTHS     = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function friendlyDate(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00Z');
+  return `${SHORT_DAYS[d.getUTCDay()]} ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
+}
+
 router.get('/', (req, res) => {
   const about = store.getAbout();
   const services = store.getServices();
@@ -23,11 +31,18 @@ router.get('/', (req, res) => {
       .map(s => ({ day: DAYS[s.day_of_week], hours: `${formatTime(s.start_time)} - ${formatTime(s.end_time)}` })),
   }));
 
+  const availGrid = store.getAvailabilityGrid();
+  const availability = availGrid.stylists.map(s => ({
+    name: s.name,
+    available_dates: s.availability.filter(a => a.available).map(a => a.date),
+  }));
+
   const data = {
     salon: about.name || 'Apoorva Hair Salon',
     about,
     services: services.map(s => ({ name: s.name, description: s.description, duration_minutes: s.duration_minutes, price: s.price })),
     stylists,
+    availability,
   };
 
   if (req.query.format === 'text') {
@@ -82,6 +97,20 @@ function buildText(data) {
         for (const d of s.working_days) lines.push(`      ${d.day}: ${d.hours}`);
       } else {
         lines.push('    Schedule: Not set');
+      }
+    }
+  }
+
+  // Availability
+  lines.push('', 'STYLIST AVAILABILITY — NEXT 14 DAYS:');
+  if (!data.availability || !data.availability.length) {
+    lines.push('  No stylists listed yet.');
+  } else {
+    for (const s of data.availability) {
+      if (!s.available_dates.length) {
+        lines.push(`  ${s.name}: Not available in the next 14 days`);
+      } else {
+        lines.push(`  ${s.name}: ${s.available_dates.map(friendlyDate).join(', ')}`);
       }
     }
   }

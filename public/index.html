@@ -206,6 +206,27 @@
     }
     .toast.show { display: inline-block; }
 
+    /* Availability grid */
+    .avail-wrapper { overflow-x: auto; }
+    .avail-table { border-collapse: collapse; background: #fff; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); min-width: 100%; }
+    .avail-table th, .avail-table td { padding: 8px 6px; text-align: center; font-size: 0.78rem; border: 1px solid #f3f4f6; }
+    .avail-table th { background: #f9fafb; color: #6b7280; font-weight: 600; white-space: nowrap; }
+    .avail-table td:first-child { text-align: left; font-weight: 600; font-size: 0.85rem; padding: 8px 16px; white-space: nowrap; min-width: 130px; position: sticky; left: 0; background: #fff; z-index: 1; }
+    .avail-table th:first-child { position: sticky; left: 0; z-index: 2; background: #f9fafb; }
+    .avail-table .today-col { background: #fef9ee !important; }
+    .avail-cell {
+      display: block; width: 44px; height: 36px; margin: 0 auto;
+      border: none; border-radius: 6px; cursor: pointer; transition: all 0.12s;
+      font-size: 0.7rem; font-weight: 600;
+    }
+    .avail-cell.on  { background: #bbf7d0; color: #166534; }
+    .avail-cell.off { background: #f3f4f6; color: #9ca3af; }
+    .avail-cell.on:hover  { background: #86efac; }
+    .avail-cell.off:hover { background: #e5e7eb; }
+    .avail-legend { display: flex; gap: 16px; font-size: 0.78rem; color: #6b7280; margin-bottom: 14px; align-items: center; }
+    .avail-legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+
     /* Empty state */
     .empty { text-align: center; padding: 48px 24px; color: #9ca3af; font-size: 0.9rem; }
 
@@ -249,6 +270,7 @@
   <button class="active" data-tab="about">About Salon</button>
   <button data-tab="services">Services</button>
   <button data-tab="stylists">Stylists</button>
+  <button data-tab="availability">Availability</button>
   <button data-tab="preview">API Preview</button>
 </nav>
 
@@ -357,6 +379,29 @@ We have been voted best salon in the neighbourhood 3 years running"></textarea>
   </div>
 </div>
 
+<!-- ==================== AVAILABILITY TAB ==================== -->
+<div id="tab-availability" class="tab-content">
+  <div class="container">
+    <div class="section-header">
+      <h2>Availability — Next 14 Days</h2>
+      <button class="btn btn-ghost" onclick="loadAvailability()">↻ Refresh</button>
+    </div>
+    <p style="color:#6b7280;font-size:.83rem;margin-bottom:14px">
+      Click a cell to toggle a stylist's availability on a specific day.
+      Defaults come from each stylist's weekly schedule — only exceptions need changing.
+    </p>
+    <div class="avail-legend">
+      <span><span class="legend-dot" style="background:#bbf7d0"></span> Available</span>
+      <span><span class="legend-dot" style="background:#f3f4f6"></span> Unavailable</span>
+    </div>
+    <div class="avail-wrapper">
+      <table class="avail-table" id="avail-table">
+        <tbody><tr><td colspan="15" class="empty">Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <!-- ==================== API PREVIEW TAB ==================== -->
 <div id="tab-preview" class="tab-content">
   <div class="container">
@@ -446,6 +491,7 @@ We have been voted best salon in the neighbourhood 3 years running"></textarea>
       btn.classList.add('active');
       document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
       if (btn.dataset.tab === 'preview') loadPreview();
+      if (btn.dataset.tab === 'availability') loadAvailability();
     });
   });
 
@@ -711,6 +757,68 @@ We have been voted best salon in the neighbourhood 3 years running"></textarea>
     if (!confirm('Delete this stylist?')) return;
     await fetch(`/api/stylists/${id}`, { method: 'DELETE' });
     await loadStylists();
+  }
+
+  // ─── Availability ────────────────────────────────────────────────────────────
+  const DAY_ABBR  = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const MON_ABBR  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  let availGrid   = null;
+
+  async function loadAvailability() {
+    const res = await fetch('/api/availability');
+    availGrid = await res.json();
+    renderAvailability();
+  }
+
+  function renderAvailability() {
+    const table = document.getElementById('avail-table');
+    if (!availGrid || !availGrid.stylists.length) {
+      table.innerHTML = '<tbody><tr><td colspan="15" class="empty">No stylists yet. Add stylists first.</td></tr></tbody>';
+      return;
+    }
+
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    // Header row
+    const headCells = availGrid.dates.map(d => {
+      const dt = new Date(d + 'T00:00:00Z');
+      const isToday = d === todayStr;
+      return `<th class="${isToday ? 'today-col' : ''}">${DAY_ABBR[dt.getUTCDay()]}<br>${dt.getUTCDate()} ${MON_ABBR[dt.getUTCMonth()]}</th>`;
+    }).join('');
+
+    // Body rows
+    const bodyRows = availGrid.stylists.map(stylist => {
+      const cells = stylist.availability.map(({ date, available }) => {
+        const isToday = date === todayStr;
+        return `<td class="${isToday ? 'today-col' : ''}">
+          <button class="avail-cell ${available ? 'on' : 'off'}"
+            data-sid="${stylist.id}" data-date="${date}" data-avail="${available}"
+            onclick="toggleAvail(this)">${available ? '✓' : '—'}</button>
+        </td>`;
+      }).join('');
+      return `<tr><td>${esc(stylist.name)}</td>${cells}</tr>`;
+    }).join('');
+
+    table.innerHTML = `
+      <thead><tr><th>Stylist</th>${headCells}</tr></thead>
+      <tbody>${bodyRows}</tbody>`;
+  }
+
+  async function toggleAvail(btn) {
+    const stylistId = btn.dataset.sid;
+    const date      = btn.dataset.date;
+    const newAvail  = btn.dataset.avail === 'true' ? false : true;
+
+    // Optimistic UI update
+    btn.dataset.avail = newAvail;
+    btn.className = `avail-cell ${newAvail ? 'on' : 'off'}`;
+    btn.textContent = newAvail ? '✓' : '—';
+
+    await fetch(`/api/availability/${stylistId}/${date}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ available: newAvail }),
+    });
   }
 
   // ─── API Preview ─────────────────────────────────────────────────────────────

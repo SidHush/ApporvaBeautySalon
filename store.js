@@ -23,6 +23,7 @@ const DEFAULTS = {
   stylists: [],
   stylist_services: [],
   stylist_schedule: [],
+  availability_overrides: [],
 };
 
 function load() {
@@ -158,6 +159,59 @@ function deleteStylist(id) {
   save(data);
 }
 
+// ── Availability ──────────────────────────────────────────────────────────────
+
+// Is a stylist available on a given date string (YYYY-MM-DD)?
+// Overrides take priority; falls back to their weekly schedule.
+function computeDayAvailability(data, stylistId, dateStr) {
+  const overrides = data.availability_overrides || [];
+  const override = overrides.find(o => o.stylist_id === stylistId && o.date === dateStr);
+  if (override !== undefined) return override.available;
+
+  const jsDay = new Date(dateStr + 'T00:00:00Z').getUTCDay(); // 0=Sun … 6=Sat
+  const dayOfWeek = jsDay === 0 ? 6 : jsDay - 1;             // convert to 0=Mon … 6=Sun
+  const entry = (data.stylist_schedule || []).find(s => s.stylist_id === stylistId && s.day_of_week === dayOfWeek);
+  return entry ? (entry.is_working === 1 || entry.is_working === true) : false;
+}
+
+// Returns the next `days` dates (YYYY-MM-DD) starting from today (UTC).
+function next14Dates(days = 14) {
+  const out = [];
+  const now = new Date();
+  now.setUTCHours(0, 0, 0, 0);
+  for (let i = 0; i < days; i++) {
+    const d = new Date(now);
+    d.setUTCDate(now.getUTCDate() + i);
+    out.push(d.toISOString().split('T')[0]);
+  }
+  return out;
+}
+
+function getAvailabilityGrid() {
+  const data = load();
+  const dates = next14Dates();
+  const stylists = data.stylists
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(s => ({
+      id: s.id,
+      name: s.name,
+      availability: dates.map(date => ({ date, available: computeDayAvailability(data, s.id, date) })),
+    }));
+  return { dates, stylists };
+}
+
+function setAvailabilityOverride(stylist_id, date, available) {
+  const data = load();
+  if (!data.availability_overrides) data.availability_overrides = [];
+  const idx = data.availability_overrides.findIndex(o => o.stylist_id === stylist_id && o.date === date);
+  if (idx !== -1) {
+    data.availability_overrides[idx].available = available;
+  } else {
+    data.availability_overrides.push({ stylist_id, date, available });
+  }
+  save(data);
+}
+
 // ── About ─────────────────────────────────────────────────────────────────────
 
 function getAbout() {
@@ -176,5 +230,5 @@ module.exports = {
   getServices, getService, createService, updateService, deleteService,
   getStylists, getStylist, createStylist, updateStylist, updateSchedule, deleteStylist,
   getAbout, saveAbout,
-  load,
+  getAvailabilityGrid, setAvailabilityOverride, next14Dates, computeDayAvailability, load,
 };
