@@ -187,6 +187,13 @@ function next14Dates(days = 14) {
   return out;
 }
 
+function getDayHours(data, stylistId, dateStr) {
+  const jsDay = new Date(dateStr + 'T00:00:00Z').getUTCDay();
+  const dayOfWeek = jsDay === 0 ? 6 : jsDay - 1;
+  const entry = (data.stylist_schedule || []).find(s => s.stylist_id === stylistId && s.day_of_week === dayOfWeek);
+  return entry ? { start_time: entry.start_time, end_time: entry.end_time } : null;
+}
+
 function getAvailabilityGrid() {
   const data = load();
   const dates = next14Dates();
@@ -195,7 +202,11 @@ function getAvailabilityGrid() {
     .map(s => ({
       id: s.id,
       name: s.name,
-      availability: dates.map(date => ({ date, available: computeDayAvailability(data, s.id, date) })),
+      availability: dates.map(date => ({
+        date,
+        available: computeDayAvailability(data, s.id, date),
+        hours: getDayHours(data, s.id, date),
+      })),
     }));
   return { dates, stylists };
 }

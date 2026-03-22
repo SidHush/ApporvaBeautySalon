@@ -34,7 +34,14 @@ router.get('/', (req, res) => {
   const availGrid = store.getAvailabilityGrid();
   const availability = availGrid.stylists.map(s => ({
     name: s.name,
-    available_dates: s.availability.filter(a => a.available).map(a => a.date),
+    available_dates: s.availability
+      .filter(a => a.available)
+      .map(a => ({
+        date: a.date,
+        hours: a.hours
+          ? `${formatTime(a.hours.start_time)} – ${formatTime(a.hours.end_time)}`
+          : null,
+      })),
   }));
 
   const data = {
@@ -110,7 +117,11 @@ function buildText(data) {
       if (!s.available_dates.length) {
         lines.push(`  ${s.name}: Not available in the next 14 days`);
       } else {
-        lines.push(`  ${s.name}: ${s.available_dates.map(friendlyDate).join(', ')}`);
+        lines.push(`  ${s.name}:`);
+        for (const d of s.available_dates) {
+          const timeStr = d.hours ? ` (${d.hours})` : '';
+          lines.push(`    ${friendlyDate(d.date)}${timeStr}`);
+        }
       }
     }
   }
