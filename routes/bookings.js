@@ -46,6 +46,49 @@ router.get('/', (req, res) => {
   }
 });
 
+// GET /api/bookings/lookup?name=Sarah&phone=2164738236  — agent looks up customer bookings
+router.get('/lookup', (req, res) => {
+  try {
+    const { name, phone } = req.query;
+    if (!name && !phone) {
+      return res.status(400).json({ success: false, message: 'Provide at least a name or phone number.' });
+    }
+
+    const all = store.getBookings();
+
+    const matches = all.filter(b => {
+      const nameMatch  = name  ? b.customer_name.toLowerCase().includes(name.trim().toLowerCase())  : true;
+      const phoneMatch = phone ? (b.customer_phone || '').replace(/\D/g, '').includes(phone.replace(/\D/g, '')) : true;
+      return nameMatch && phoneMatch;
+    });
+
+    if (!matches.length) {
+      return res.status(404).json({
+        success: false,
+        message: `No bookings found for ${name || ''}${name && phone ? ' / ' : ''}${phone || ''}.`,
+      });
+    }
+
+    res.json({
+      success: true,
+      count: matches.length,
+      bookings: matches.map(b => ({
+        booking_id:     b.id,
+        customer_name:  b.customer_name,
+        customer_phone: b.customer_phone,
+        services:       b.services,
+        date:           b.date,
+        time:           b.time,
+        duration_minutes: b.duration_minutes,
+        stylist:        b.stylist,
+        status:         b.status,
+      })),
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
 // POST /api/bookings  — called by ElevenLabs voice agent
 router.post('/', (req, res) => {
   try {
