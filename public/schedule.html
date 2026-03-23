@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Schedule & Availability</title>
+  <title>Apoorva Hair Salon - Voice Agent by Siddhesh H.</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -289,9 +289,8 @@
     try {
       const res = await fetch('/api/about');
       const a   = await res.json();
-      document.getElementById('salon-name').textContent    = a.name    || 'Apoorva Hair Salon';
+      document.getElementById('salon-name').textContent    = 'Apoorva Hair Salon - Voice Agent by Siddhesh H.';
       document.getElementById('salon-address').textContent = a.address || '';
-      document.title = (a.name || 'Apoorva Hair Salon') + ' — Schedule';
     } catch {}
   }
 
