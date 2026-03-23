@@ -16,6 +16,11 @@ app.use('/api/services', require('./routes/services'));
 app.use('/api/stylists', require('./routes/stylists'));
 app.use('/api/knowledge', require('./routes/knowledge'));
 
+// Public schedule page (no auth required)
+app.get('/schedule', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'schedule.html'));
+});
+
 // Serve admin UI for all non-API routes
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

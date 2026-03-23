@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Schedule & Availability</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f8f7f5;
+      color: #1a1a1a;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: #1a1a1a;
+      color: #fff;
+      padding: 28px 32px 22px;
+      text-align: center;
+    }
+    header h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.3px; }
+    header p  { font-size: 0.88rem; color: #aaa; margin-top: 4px; }
+    .live-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #1f2937; border-radius: 20px;
+      padding: 4px 12px; font-size: 0.75rem; color: #9ca3af;
+      margin-top: 10px;
+    }
+    .live-dot {
+      width: 7px; height: 7px; background: #4ade80;
+      border-radius: 50%; animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; } 50% { opacity: 0.3; }
+    }
+
+    /* ── Nav tabs ── */
+    nav {
+      background: #fff;
+      border-bottom: 1px solid #e5e5e5;
+      display: flex;
+      justify-content: center;
+      gap: 0;
+    }
+    nav button {
+      background: none; border: none;
+      padding: 14px 28px; font-size: 0.9rem;
+      color: #666; cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    nav button:hover { color: #1a1a1a; }
+    nav button.active { color: #1a1a1a; border-bottom-color: #c9a96e; font-weight: 600; }
+
+    /* ── Layout ── */
+    .container { max-width: 960px; margin: 0 auto; padding: 32px 20px; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ── Section header ── */
+    .section-header {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .section-header h2 { font-size: 1.05rem; font-weight: 600; }
+    .updated { font-size: 0.78rem; color: #9ca3af; }
+
+    /* ── Date group ── */
+    .date-group { margin-bottom: 28px; }
+    .date-label {
+      font-size: 0.78rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.8px;
+      color: #6b7280; margin-bottom: 10px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .date-label .today-pill {
+      background: #c9a96e; color: #fff;
+      border-radius: 10px; padding: 1px 8px;
+      font-size: 0.7rem; font-weight: 600; letter-spacing: 0;
+    }
+
+    /* ── Booking cards ── */
+    .booking-list { display: flex; flex-direction: column; gap: 10px; }
+    .booking-card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 14px 18px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+      display: grid;
+      grid-template-columns: 90px 1fr 1fr 1fr auto;
+      align-items: center;
+      gap: 12px;
+    }
+    .booking-time {
+      font-size: 1rem; font-weight: 700; color: #1a1a1a;
+    }
+    .booking-service { font-size: 0.88rem; font-weight: 600; }
+    .booking-stylist { font-size: 0.83rem; color: #6b7280; }
+    .booking-dur {
+      font-size: 0.78rem; color: #9ca3af;
+      background: #f3f4f6; border-radius: 20px;
+      padding: 2px 10px; text-align: center;
+    }
+    .status-pill {
+      font-size: 0.72rem; font-weight: 600;
+      border-radius: 20px; padding: 3px 10px;
+      text-align: center; white-space: nowrap;
+    }
+    .status-confirmed { background: #dcfce7; color: #166534; }
+    .status-completed { background: #e0e7ff; color: #3730a3; }
+    .status-cancelled { background: #fee2e2; color: #b91c1c; text-decoration: line-through; opacity: 0.7; }
+
+    /* ── Empty state ── */
+    .empty {
+      text-align: center; padding: 48px 24px;
+      color: #9ca3af; font-size: 0.9rem;
+      background: #fff; border-radius: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+    }
+    .empty-icon { font-size: 2rem; margin-bottom: 8px; }
+
+    /* ── Availability cards ── */
+    .avail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .stylist-card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+    }
+    .stylist-name {
+      font-size: 1rem; font-weight: 700;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #f3f4f6;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .stylist-avatar {
+      width: 32px; height: 32px;
+      background: #1a1a1a; color: #fff;
+      border-radius: 50%; font-size: 0.8rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .avail-day { margin-bottom: 12px; }
+    .avail-day-label {
+      font-size: 0.75rem; font-weight: 600; color: #6b7280;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      margin-bottom: 5px;
+    }
+    .free-windows { display: flex; flex-wrap: wrap; gap: 5px; }
+    .free-chip {
+      background: #dcfce7; color: #166534;
+      border-radius: 6px; padding: 3px 9px;
+      font-size: 0.75rem; font-weight: 500;
+    }
+    .booked-chip {
+      background: #fee2e2; color: #b91c1c;
+      border-radius: 6px; padding: 3px 9px;
+      font-size: 0.75rem; font-weight: 500;
+    }
+    .no-openings {
+      font-size: 0.78rem; color: #9ca3af;
+      font-style: italic;
+    }
+    .fully-booked-badge {
+      display: inline-block;
+      background: #fef3c7; color: #92400e;
+      border-radius: 6px; padding: 2px 8px;
+      font-size: 0.72rem; font-weight: 600; margin-left: 4px;
+    }
+
+    /* ── Filter bar ── */
+    .filter-bar {
+      display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;
+    }
+    .filter-btn {
+      background: #f3f4f6; border: none; border-radius: 20px;
+      padding: 6px 16px; font-size: 0.82rem; color: #374151;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .filter-btn:hover { background: #e5e7eb; }
+    .filter-btn.active { background: #1a1a1a; color: #fff; }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .booking-card {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto;
+      }
+      .booking-time { grid-column: 1; }
+      .booking-dur  { grid-column: 2; justify-self: end; }
+      .booking-service { grid-column: 1; }
+      .booking-stylist { grid-column: 1; }
+      .status-pill { grid-column: 2; justify-self: end; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1 id="salon-name">Loading…</h1>
+  <p id="salon-address"></p>
+  <div class="live-badge">
+    <span class="live-dot"></span>
+    <span id="last-updated">Live schedule</span>
+  </div>
+</header>
+
+<nav>
+  <button class="active" data-tab="bookings">Bookings</button>
+  <button data-tab="availability">Stylist Availability</button>
+</nav>
+
+<!-- ==================== BOOKINGS TAB ==================== -->
+<div id="tab-bookings" class="tab-content active">
+  <div class="container">
+    <div class="section-header">
+      <h2>Upcoming Bookings</h2>
+    </div>
+    <div class="filter-bar">
+      <button class="filter-btn active" data-filter="upcoming" onclick="setBookingFilter(this)">Upcoming</button>
+      <button class="filter-btn" data-filter="today"    onclick="setBookingFilter(this)">Today</button>
+      <button class="filter-btn" data-filter="all"      onclick="setBookingFilter(this)">All</button>
+    </div>
+    <div id="bookings-view">
+      <div class="empty"><div class="empty-icon">📅</div>Loading bookings…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== AVAILABILITY TAB ==================== -->
+<div id="tab-availability" class="tab-content">
+  <div class="container">
+    <div class="section-header">
+      <h2>Stylist Availability — Next 14 Days</h2>
+    </div>
+    <div id="availability-view" class="avail-grid">
+      <div class="empty" style="grid-column:1/-1"><div class="empty-icon">⏳</div>Loading availability…</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const DAY_NAMES  = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const MON_NAMES  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  let allBookings   = [];
+  let bookingFilter = 'upcoming';
+
+  // ── Tab switching ────────────────────────────────────────────────────────────
+  document.querySelectorAll('nav button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  // ── Helpers ──────────────────────────────────────────────────────────────────
+  function esc(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function toISO(dateStr) {
+    if (!dateStr) return null;
+    const mdy = String(dateStr).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (mdy) return `${mdy[3]}-${mdy[1].padStart(2,'0')}-${mdy[2].padStart(2,'0')}`;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+    return null;
+  }
+
+  function friendlyDate(isoStr) {
+    const d = new Date(isoStr + 'T00:00:00Z');
+    return `${DAY_NAMES[d.getUTCDay()]}, ${d.getUTCDate()} ${MON_NAMES[d.getUTCMonth()]}`;
+  }
+
+  function todayISO() {
+    return new Date().toISOString().split('T')[0];
+  }
+
+  function parseTimeSortKey(t) {
+    if (!t) return 9999;
+    const s = String(t).trim().toUpperCase().replace(/\s+/g,'');
+    const mil = s.match(/^(\d{1,2}):(\d{2})$/);
+    if (mil) return parseInt(mil[1]) * 60 + parseInt(mil[2]);
+    const tw = s.match(/^(\d{1,2})(?::(\d{2}))?(AM|PM)$/);
+    if (tw) {
+      let h = parseInt(tw[1]), m = parseInt(tw[2] || '0');
+      if (tw[3] === 'PM' && h !== 12) h += 12;
+      if (tw[3] === 'AM' && h === 12) h = 0;
+      return h * 60 + m;
+    }
+    return 9999;
+  }
+
+  // ── About ────────────────────────────────────────────────────────────────────
+  async function loadAbout() {
+    try {
+      const res = await fetch('/api/about');
+      const a   = await res.json();
+      document.getElementById('salon-name').textContent    = a.name    || 'Apoorva Hair Salon';
+      document.getElementById('salon-address').textContent = a.address || '';
+      document.title = (a.name || 'Apoorva Hair Salon') + ' — Schedule';
+    } catch {}
+  }
+
+  // ── Bookings ─────────────────────────────────────────────────────────────────
+  async function loadBookings() {
+    try {
+      const res  = await fetch('/api/bookings');
+      allBookings = await res.json();
+      renderBookings();
+    } catch {
+      document.getElementById('bookings-view').innerHTML =
+        '<div class="empty"><div class="empty-icon">⚠️</div>Could not load bookings.</div>';
+    }
+  }
+
+  function setBookingFilter(btn) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    bookingFilter = btn.dataset.filter;
+    renderBookings();
+  }
+
+  function renderBookings() {
+    const today = todayISO();
+    let list = allBookings.filter(b => b.status !== 'cancelled');
+
+    if (bookingFilter === 'today') {
+      list = list.filter(b => toISO(b.date) === today);
+    } else if (bookingFilter === 'upcoming') {
+      list = list.filter(b => {
+        const iso = toISO(b.date);
+        return iso && iso >= today;
+      });
+    }
+
+    if (!list.length) {
+      document.getElementById('bookings-view').innerHTML =
+        `<div class="empty"><div class="empty-icon">📅</div>No bookings to show.</div>`;
+      return;
+    }
+
+    // Group by date
+    const groups = {};
+    list.forEach(b => {
+      const iso = toISO(b.date) || b.date;
+      if (!groups[iso]) groups[iso] = [];
+      groups[iso].push(b);
+    });
+
+    // Sort groups by date, then bookings within by time
+    const sortedDates = Object.keys(groups).sort();
+    let html = '';
+    for (const iso of sortedDates) {
+      const isToday   = iso === today;
+      const dayLabel  = friendlyDate(iso);
+      const dayBookings = groups[iso].sort((a,b) => parseTimeSortKey(a.time) - parseTimeSortKey(b.time));
+
+      html += `
+        <div class="date-group">
+          <div class="date-label">
+            ${esc(dayLabel)}
+            ${isToday ? '<span class="today-pill">Today</span>' : ''}
+          </div>
+          <div class="booking-list">
+            ${dayBookings.map(b => `
+              <div class="booking-card">
+                <div class="booking-time">${esc(b.time)}</div>
+                <div class="booking-service">${esc(b.services)}</div>
+                <div class="booking-stylist">with ${esc(b.stylist)}</div>
+                <div class="booking-dur">${b.duration_minutes || 60} min</div>
+                <div class="status-pill status-${esc(b.status)}">${esc(b.status)}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>`;
+    }
+
+    document.getElementById('bookings-view').innerHTML = html;
+  }
+
+  // ── Availability ─────────────────────────────────────────────────────────────
+  async function loadAvailability() {
+    try {
+      const res  = await fetch('/api/availability/openings');
+      const data = await res.json();
+      renderAvailability(data);
+    } catch {
+      document.getElementById('availability-view').innerHTML =
+        '<div class="empty" style="grid-column:1/-1"><div class="empty-icon">⚠️</div>Could not load availability.</div>';
+    }
+  }
+
+  function renderAvailability(stylists) {
+    const container = document.getElementById('availability-view');
+
+    if (!stylists.length) {
+      container.innerHTML = '<div class="empty" style="grid-column:1/-1"><div class="empty-icon">💆</div>No stylists found.</div>';
+      return;
+    }
+
+    container.innerHTML = stylists.map(stylist => {
+      const initials = stylist.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+
+      const daysHtml = stylist.open_days.length === 0
+        ? '<p class="no-openings">No available slots in the next 14 days.</p>'
+        : stylist.open_days.map(day => {
+            const label = friendlyDate(day.date);
+            const freeChips = day.free_windows.map(w =>
+              `<span class="free-chip">✓ ${esc(w.from)} – ${esc(w.until)}</span>`
+            ).join('');
+            const bookedChips = day.booked_slots.map(s =>
+              `<span class="booked-chip">✗ ${esc(s.from)} – ${esc(s.until)}</span>`
+            ).join('');
+            return `
+              <div class="avail-day">
+                <div class="avail-day-label">${esc(label)}</div>
+                <div class="free-windows">
+                  ${freeChips}
+                  ${bookedChips}
+                </div>
+              </div>`;
+          }).join('');
+
+      return `
+        <div class="stylist-card">
+          <div class="stylist-name">
+            <div class="stylist-avatar">${esc(initials)}</div>
+            ${esc(stylist.name)}
+          </div>
+          ${daysHtml}
+        </div>`;
+    }).join('');
+  }
+
+  // ── Refresh ───────────────────────────────────────────────────────────────────
+  function updateTimestamp() {
+    const now  = new Date();
+    const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('last-updated').textContent = `Last updated ${time} · Auto-refreshes every minute`;
+  }
+
+  async function refreshAll() {
+    await Promise.all([loadBookings(), loadAvailability()]);
+    updateTimestamp();
+  }
+
+  // ── Init ─────────────────────────────────────────────────────────────────────
+  (async () => {
+    await loadAbout();
+    await refreshAll();
+    setInterval(refreshAll, 60_000); // auto-refresh every 60s
+  })();
+</script>
+</body>
+</html>
