@@ -99,12 +99,6 @@ function buildText(data) {
     for (const s of data.stylists) {
       lines.push(`  ${s.name}`);
       if (s.services.length) lines.push(`    Services: ${s.services.join(', ')}`);
-      if (s.working_days.length) {
-        lines.push('    Schedule:');
-        for (const d of s.working_days) lines.push(`      ${d.day}: ${d.hours}`);
-      } else {
-        lines.push('    Schedule: Not set');
-      }
     }
   }
 
