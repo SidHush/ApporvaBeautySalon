@@ -2,6 +2,32 @@ const express = require('express');
 const router = express.Router();
 const store = require('../store');
 
+// Parse flexible time strings → minutes from midnight
+function parseTimeToMins(t) {
+  if (!t) return null;
+  const s = String(t).trim().toUpperCase().replace(/\s+/g, '');
+  const mil = s.match(/^(\d{1,2}):(\d{2})$/);
+  if (mil) return parseInt(mil[1]) * 60 + parseInt(mil[2]);
+  const twelve = s.match(/^(\d{1,2})(?::(\d{2}))?(AM|PM)$/);
+  if (twelve) {
+    let h = parseInt(twelve[1]);
+    const m = parseInt(twelve[2] || '0');
+    if (twelve[3] === 'PM' && h !== 12) h += 12;
+    if (twelve[3] === 'AM' && h === 12) h = 0;
+    return h * 60 + m;
+  }
+  return null;
+}
+
+// Minutes from midnight → "3:00 PM"
+function minsToFmt(mins) {
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const display = h > 12 ? h - 12 : h === 0 ? 12 : h;
+  return `${display}:${String(m).padStart(2, '0')} ${ampm}`;
+}
+
 // Parse "3/23/2026" or "2026-03-23" → "YYYY-MM-DD"
 function toISO(dateStr) {
   if (!dateStr) return null;
@@ -52,6 +78,33 @@ router.post('/', (req, res) => {
         return res.status(400).json({
           success: false,
           message: `${matched.name} is not available on ${date}. Please choose a different date or stylist.`,
+        });
+      }
+    }
+
+    // Check for time slot conflicts with existing confirmed bookings
+    const reqStart = parseTimeToMins(time);
+    if (reqStart !== null) {
+      const reqEnd = reqStart + (parseInt(duration_minutes) || 60);
+      const conflicts = store.getBookings().filter(b => {
+        if (b.status !== 'confirmed') return false;
+        if (b.stylist.toLowerCase() !== matched.name.toLowerCase()) return false;
+        if (toISO(b.date) !== iso) return false;
+        const exStart = parseTimeToMins(b.time);
+        if (exStart === null) return false;
+        const exEnd = exStart + (b.duration_minutes || 60);
+        return reqStart < exEnd && reqEnd > exStart; // overlap
+      });
+
+      if (conflicts.length > 0) {
+        const taken = conflicts.map(b => {
+          const s = parseTimeToMins(b.time);
+          const e = s + (b.duration_minutes || 60);
+          return `${minsToFmt(s)}–${minsToFmt(e)}`;
+        }).join(', ');
+        return res.status(409).json({
+          success: false,
+          message: `That slot is already taken. ${matched.name} is booked from ${taken} on ${date}. Please choose a different time.`,
         });
       }
     }
