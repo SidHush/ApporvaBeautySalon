@@ -125,59 +125,32 @@
     }
     .empty-icon { font-size: 2rem; margin-bottom: 8px; }
 
-    /* ── Availability cards ── */
-    .avail-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 16px;
+    /* ── Availability grid (same as admin, read-only) ── */
+    .avail-week { margin-bottom: 28px; }
+    .avail-week-label { font-size: 0.75rem; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px; }
+    .avail-wrapper { overflow-x: auto; }
+    .avail-table { border-collapse: collapse; background: #fff; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); width: 100%; }
+    .avail-table th, .avail-table td { padding: 6px; text-align: center; font-size: 0.78rem; border: 1px solid #f3f4f6; }
+    .avail-table th { background: #f9fafb; color: #6b7280; font-weight: 600; white-space: nowrap; }
+    .avail-table td.stylist-col { text-align: left; font-weight: 600; font-size: 0.85rem; padding: 8px 14px; white-space: nowrap; min-width: 120px; background: #fff; position: sticky; left: 0; z-index: 1; }
+    .avail-table th:first-child { position: sticky; left: 0; z-index: 2; background: #f9fafb; min-width: 120px; }
+    .avail-table .today-col { background: #fef9ee !important; }
+    .avail-cell {
+      display: flex; flex-direction: column; align-items: flex-start;
+      width: 100%; min-height: 52px; padding: 5px 7px;
+      border-radius: 6px; text-align: left; gap: 2px;
     }
-    .stylist-card {
-      background: #fff;
-      border-radius: 10px;
-      padding: 20px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.07);
-    }
-    .stylist-name {
-      font-size: 1rem; font-weight: 700;
-      margin-bottom: 14px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid #f3f4f6;
-      display: flex; align-items: center; gap: 8px;
-    }
-    .stylist-avatar {
-      width: 32px; height: 32px;
-      background: #1a1a1a; color: #fff;
-      border-radius: 50%; font-size: 0.8rem; font-weight: 700;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-    }
-    .avail-day { margin-bottom: 12px; }
-    .avail-day-label {
-      font-size: 0.75rem; font-weight: 600; color: #6b7280;
-      text-transform: uppercase; letter-spacing: 0.5px;
-      margin-bottom: 5px;
-    }
-    .free-windows { display: flex; flex-wrap: wrap; gap: 5px; }
-    .free-chip {
-      background: #dcfce7; color: #166534;
-      border-radius: 6px; padding: 3px 9px;
-      font-size: 0.75rem; font-weight: 500;
-    }
-    .booked-chip {
-      background: #fee2e2; color: #b91c1c;
-      border-radius: 6px; padding: 3px 9px;
-      font-size: 0.75rem; font-weight: 500;
-    }
-    .no-openings {
-      font-size: 0.78rem; color: #9ca3af;
-      font-style: italic;
-    }
-    .fully-booked-badge {
-      display: inline-block;
-      background: #fef3c7; color: #92400e;
-      border-radius: 6px; padding: 2px 8px;
-      font-size: 0.72rem; font-weight: 600; margin-left: 4px;
-    }
+    .avail-cell.on  { background: #dcfce7; }
+    .avail-cell.off { background: #f3f4f6; align-items: center; justify-content: center; }
+    .cell-hours   { font-size: 0.64rem; color: #166534; font-weight: 600; }
+    .cell-off-txt { font-size: 0.75rem; color: #9ca3af; }
+    .booking-slot { width: 100%; background: #fff7ed; border-left: 2px solid #f97316; border-radius: 2px; padding: 2px 4px; margin-top: 2px; }
+    .booking-slot-time { font-size: 0.62rem; font-weight: 700; color: #c2410c; display: block; }
+    .booking-slot-info { font-size: 0.59rem; color: #9a3412; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90px; }
+    .avail-legend { display: flex; gap: 16px; font-size: 0.78rem; color: #6b7280; margin-bottom: 16px; align-items: center; flex-wrap: wrap; }
+    .avail-legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+    .legend-booking { width: 12px; height: 12px; border-radius: 2px; background: #fff7ed; border-left: 3px solid #f97316; flex-shrink: 0; }
 
     /* ── Filter bar ── */
     .filter-bar {
@@ -243,10 +216,15 @@
 <div id="tab-availability" class="tab-content">
   <div class="container">
     <div class="section-header">
-      <h2>Stylist Availability — Next 14 Days</h2>
+      <h2>Stylist Availability — Next 2 Weeks</h2>
     </div>
-    <div id="availability-view" class="avail-grid">
-      <div class="empty" style="grid-column:1/-1"><div class="empty-icon">⏳</div>Loading availability…</div>
+    <div class="avail-legend">
+      <span><span class="legend-dot" style="background:#dcfce7"></span> Available</span>
+      <span><span class="legend-dot" style="background:#f3f4f6"></span> Day Off</span>
+      <span><span class="legend-booking"></span> Booked slot</span>
+    </div>
+    <div id="availability-view">
+      <div class="empty"><div class="empty-icon">⏳</div>Loading availability…</div>
     </div>
   </div>
 </div>
@@ -406,57 +384,105 @@
   }
 
   // ── Availability ─────────────────────────────────────────────────────────────
+  const DAY_ABBR = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const MON_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  let availGrid  = null;
+
+  function fmtHour(t) {
+    const [h] = t.split(':');
+    const hr = parseInt(h);
+    return (hr > 12 ? hr - 12 : hr || 12) + (hr >= 12 ? 'PM' : 'AM');
+  }
+
+  function normDate(s) {
+    if (!s) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    const m = String(s).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    return m ? `${m[3]}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}` : s;
+  }
+
   async function loadAvailability() {
     try {
-      const res  = await fetch('/api/availability/openings');
-      const data = await res.json();
-      renderAvailability(data);
+      const [availRes, bookRes] = await Promise.all([
+        fetch('/api/availability'),
+        fetch('/api/bookings'),
+      ]);
+      availGrid   = await availRes.json();
+      allBookings = await bookRes.json();
+      renderAvailability();
     } catch {
       document.getElementById('availability-view').innerHTML =
-        '<div class="empty" style="grid-column:1/-1"><div class="empty-icon">⚠️</div>Could not load availability.</div>';
+        '<div class="empty"><div class="empty-icon">⚠️</div>Could not load availability.</div>';
     }
   }
 
-  function renderAvailability(stylists) {
+  function renderAvailability() {
     const container = document.getElementById('availability-view');
-
-    if (!stylists.length) {
-      container.innerHTML = '<div class="empty" style="grid-column:1/-1"><div class="empty-icon">💆</div>No stylists found.</div>';
+    if (!availGrid || !availGrid.stylists.length) {
+      container.innerHTML = '<div class="empty">No stylists found.</div>';
       return;
     }
 
-    container.innerHTML = stylists.map(stylist => {
-      const initials = stylist.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    const todayStr = new Date().toISOString().split('T')[0];
+    const week1    = availGrid.dates.slice(0, 7);
+    const week2    = availGrid.dates.slice(7);
 
-      const daysHtml = stylist.open_days.length === 0
-        ? '<p class="no-openings">No available slots in the next 14 days.</p>'
-        : stylist.open_days.map(day => {
-            const label = friendlyDate(day.date);
-            const freeChips = day.free_windows.map(w =>
-              `<span class="free-chip">✓ ${esc(w.from)} – ${esc(w.until)}</span>`
-            ).join('');
-            const bookedChips = day.booked_slots.map(s =>
-              `<span class="booked-chip">✗ ${esc(s.from)} – ${esc(s.until)}</span>`
-            ).join('');
-            return `
-              <div class="avail-day">
-                <div class="avail-day-label">${esc(label)}</div>
-                <div class="free-windows">
-                  ${freeChips}
-                  ${bookedChips}
-                </div>
-              </div>`;
-          }).join('');
+    function buildWeekTable(weekDates, label) {
+      const headCells = weekDates.map(d => {
+        const dt = new Date(d + 'T00:00:00Z');
+        return `<th class="${d === todayStr ? 'today-col' : ''}">${DAY_ABBR[dt.getUTCDay()]}<br>${dt.getUTCDate()} ${MON_ABBR[dt.getUTCMonth()]}</th>`;
+      }).join('');
+
+      const bodyRows = availGrid.stylists.map(stylist => {
+        const cells = weekDates.map(date => {
+          const dayData = stylist.availability.find(a => a.date === date) || {};
+          const { available, hours } = dayData;
+          const isToday = date === todayStr;
+
+          const dayBookings = allBookings.filter(b =>
+            b.status === 'confirmed' &&
+            normDate(b.date) === date &&
+            b.stylist.toLowerCase() === stylist.name.toLowerCase()
+          );
+
+          let inner;
+          if (!available) {
+            inner = `<span class="cell-off-txt">—</span>`;
+          } else {
+            const hoursStr = hours
+              ? `<span class="cell-hours">${fmtHour(hours.start_time)}–${fmtHour(hours.end_time)}</span>`
+              : '';
+            const slots = dayBookings.map(b => `
+              <div class="booking-slot">
+                <span class="booking-slot-time">${esc(b.time)}</span>
+                <span class="booking-slot-info" title="${esc(b.services)} · ${esc(b.customer_name)}">${esc(b.services)} · ${esc(b.customer_name)}</span>
+              </div>`).join('');
+            inner = hoursStr + slots;
+          }
+
+          return `<td class="${isToday ? 'today-col' : ''}">
+            <div class="avail-cell ${available ? 'on' : 'off'}">${inner}</div>
+          </td>`;
+        }).join('');
+
+        return `<tr><td class="stylist-col">${esc(stylist.name)}</td>${cells}</tr>`;
+      }).join('');
 
       return `
-        <div class="stylist-card">
-          <div class="stylist-name">
-            <div class="stylist-avatar">${esc(initials)}</div>
-            ${esc(stylist.name)}
+        <div class="avail-week">
+          <div class="avail-week-label">${label}</div>
+          <div class="avail-wrapper">
+            <table class="avail-table">
+              <thead><tr><th></th>${headCells}</tr></thead>
+              <tbody>${bodyRows}</tbody>
+            </table>
           </div>
-          ${daysHtml}
         </div>`;
-    }).join('');
+    }
+
+    container.innerHTML =
+      buildWeekTable(week1, 'This Week') +
+      buildWeekTable(week2, 'Next Week');
   }
 
   // ── Refresh ───────────────────────────────────────────────────────────────────
