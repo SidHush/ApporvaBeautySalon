@@ -46,10 +46,10 @@ router.get('/', (req, res) => {
   }
 });
 
-// GET /api/bookings/lookup?name=Sarah&phone=2164738236  — agent looks up customer bookings
-router.get('/lookup', (req, res) => {
+// POST /api/bookings/lookup  — agent looks up customer bookings
+router.post('/lookup', (req, res) => {
   try {
-    const { name, phone } = req.query;
+    const { name, phone } = req.body;
     if (!name && !phone) {
       return res.status(400).json({ success: false, message: 'Provide at least a name or phone number.' });
     }
