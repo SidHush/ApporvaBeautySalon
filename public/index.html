@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Apoorva Hair Salon — Admin</title>
+  <title>Apoorva Salon Voice Agent by Siddhesh</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -278,13 +278,91 @@
       color: #713f12;
       margin-bottom: 20px;
     }
+
+    /* ── Login overlay ─────────────────────────────────────── */
+    #login-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      background: #f5f4f2;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #login-overlay.hidden { display: none; }
+    .login-box {
+      background: #fff;
+      border-radius: 14px;
+      padding: 40px 36px;
+      width: 100%; max-width: 380px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.12);
+      text-align: center;
+    }
+    .login-logo {
+      font-size: 1.5rem; font-weight: 800;
+      letter-spacing: -0.5px; color: #1a1a1a;
+      margin-bottom: 4px;
+    }
+    .login-sub {
+      font-size: 0.78rem; color: #9ca3af;
+      margin-bottom: 28px;
+    }
+    .login-box .form-group { text-align: left; margin-bottom: 14px; }
+    .login-box label { font-size: 0.8rem; font-weight: 500; color: #374151; display: block; margin-bottom: 5px; }
+    .login-box input {
+      width: 100%; padding: 10px 12px;
+      border: 1px solid #d1d5db; border-radius: 8px;
+      font-size: 0.9rem; transition: border-color 0.15s;
+    }
+    .login-box input:focus { outline: none; border-color: #c9a96e; }
+    .login-btn {
+      width: 100%; padding: 11px;
+      background: #1a1a1a; color: #fff;
+      border: none; border-radius: 8px;
+      font-size: 0.9rem; font-weight: 600;
+      cursor: pointer; margin-top: 6px;
+      transition: background 0.15s;
+    }
+    .login-btn:hover { background: #333; }
+    .login-error {
+      color: #b91c1c; font-size: 0.8rem;
+      margin-top: 10px; min-height: 18px;
+    }
+
+    /* ── Header logout ─────────────────────────────────────── */
+    header { justify-content: space-between; }
+    .header-left { display: flex; align-items: baseline; gap: 12px; }
+    .logout-btn {
+      background: #333; color: #ccc;
+      border: none; border-radius: 6px;
+      padding: 6px 14px; font-size: 0.78rem;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .logout-btn:hover { background: #555; }
   </style>
 </head>
 <body>
 
+<!-- ==================== LOGIN OVERLAY ==================== -->
+<div id="login-overlay">
+  <div class="login-box">
+    <div class="login-logo">Apoorva Salon</div>
+    <div class="login-sub">Voice Agent Admin · by Siddhesh</div>
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" id="login-user" placeholder="Username" autocomplete="username" />
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="login-pass" placeholder="Password" autocomplete="current-password" />
+    </div>
+    <button class="login-btn" onclick="doLogin()">Sign In</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
 <header>
-  <h1>Apoorva Hair Salon</h1>
-  <span>Admin Panel</span>
+  <div class="header-left">
+    <h1>Apoorva Salon Voice Agent</h1>
+    <span>by Siddhesh</span>
+  </div>
+  <button class="logout-btn" onclick="doLogout()">Sign Out</button>
 </header>
 
 <nav>
@@ -1040,8 +1118,38 @@ We have been voted best salon in the neighbourhood 3 years running"></textarea>
     return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
+  // ─── Auth ─────────────────────────────────────────────────────────────────────
+  const CREDS = { username: 'Test', password: 'SidVoiceAgent' };
+
+  function doLogin() {
+    const u = document.getElementById('login-user').value.trim();
+    const p = document.getElementById('login-pass').value;
+    if (u === CREDS.username && p === CREDS.password) {
+      localStorage.setItem('ava_auth', '1');
+      document.getElementById('login-overlay').classList.add('hidden');
+      document.getElementById('login-error').textContent = '';
+    } else {
+      document.getElementById('login-error').textContent = 'Incorrect username or password.';
+    }
+  }
+
+  function doLogout() {
+    localStorage.removeItem('ava_auth');
+    document.getElementById('login-user').value = '';
+    document.getElementById('login-pass').value = '';
+    document.getElementById('login-overlay').classList.remove('hidden');
+  }
+
+  // Allow pressing Enter in login fields
+  document.getElementById('login-user').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('login-pass').focus(); });
+  document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
   // ─── Init ─────────────────────────────────────────────────────────────────────
   (async () => {
+    // Check auth first
+    if (localStorage.getItem('ava_auth') === '1') {
+      document.getElementById('login-overlay').classList.add('hidden');
+    }
     await Promise.all([loadAbout(), loadServices(), loadStylists()]);
   })();
 </script>
