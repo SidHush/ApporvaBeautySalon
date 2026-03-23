@@ -91,7 +91,7 @@
       padding: 14px 18px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.07);
       display: grid;
-      grid-template-columns: 90px 1fr 1fr 1fr auto;
+      grid-template-columns: 80px 1fr 1fr 1fr auto;
       align-items: center;
       gap: 12px;
     }
@@ -100,6 +100,8 @@
     }
     .booking-service { font-size: 0.88rem; font-weight: 600; }
     .booking-stylist { font-size: 0.83rem; color: #6b7280; }
+    .booking-customer { font-size: 0.83rem; font-weight: 500; }
+    .booking-phone { font-size: 0.75rem; color: #9ca3af; font-family: monospace; margin-top: 2px; }
     .booking-dur {
       font-size: 0.78rem; color: #9ca3af;
       background: #f3f4f6; border-radius: 20px;
@@ -193,13 +195,14 @@
     @media (max-width: 640px) {
       .booking-card {
         grid-template-columns: 1fr 1fr;
-        grid-template-rows: auto auto;
+        grid-template-rows: auto auto auto;
       }
-      .booking-time { grid-column: 1; }
-      .booking-dur  { grid-column: 2; justify-self: end; }
-      .booking-service { grid-column: 1; }
+      .booking-time    { grid-column: 1; }
+      .booking-dur     { grid-column: 2; justify-self: end; }
+      .booking-service { grid-column: 1 / -1; }
       .booking-stylist { grid-column: 1; }
-      .status-pill { grid-column: 2; justify-self: end; }
+      .booking-customer { font-size: 0.8rem; }
+      .status-pill     { grid-column: 2; justify-self: end; }
     }
   </style>
 </head>
@@ -333,9 +336,16 @@
     renderBookings();
   }
 
+  function maskPhone(phone) {
+    if (!phone) return '';
+    const digits = String(phone).replace(/\D/g, '');
+    if (digits.length < 4) return 'XXXXXX' + digits;
+    return 'XXXXXX' + digits.slice(-4);
+  }
+
   function renderBookings() {
     const today = todayISO();
-    let list = allBookings.filter(b => b.status !== 'cancelled');
+    let list = [...allBookings];
 
     if (bookingFilter === 'today') {
       list = list.filter(b => toISO(b.date) === today);
@@ -380,6 +390,10 @@
                 <div class="booking-time">${esc(b.time)}</div>
                 <div class="booking-service">${esc(b.services)}</div>
                 <div class="booking-stylist">with ${esc(b.stylist)}</div>
+                <div>
+                  <div class="booking-customer">${esc(b.customer_name)}</div>
+                  ${b.customer_phone ? `<div class="booking-phone">${esc(maskPhone(b.customer_phone))}</div>` : ''}
+                </div>
                 <div class="booking-dur">${b.duration_minutes || 60} min</div>
                 <div class="status-pill status-${esc(b.status)}">${esc(b.status)}</div>
               </div>
