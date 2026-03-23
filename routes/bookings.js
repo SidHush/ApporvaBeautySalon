@@ -170,6 +170,55 @@ router.post('/', (req, res) => {
   }
 });
 
+// POST /api/bookings/cancel  — agent cancels a booking by booking_id or name+phone
+router.post('/cancel', (req, res) => {
+  try {
+    const { booking_id, name, phone } = req.body;
+
+    if (!booking_id && !name && !phone) {
+      return res.status(400).json({ success: false, message: 'Provide a booking_id or customer name and phone number.' });
+    }
+
+    const all = store.getBookings();
+    let booking;
+
+    if (booking_id) {
+      booking = all.find(b => b.id === parseInt(booking_id));
+      if (!booking) return res.status(404).json({ success: false, message: `No booking found with ID ${booking_id}.` });
+    } else {
+      const matches = all.filter(b => {
+        const nameMatch  = name  ? b.customer_name.toLowerCase().includes(name.trim().toLowerCase()) : true;
+        const phoneMatch = phone ? (b.customer_phone || '').replace(/\D/g, '').includes(phone.replace(/\D/g, '')) : true;
+        return nameMatch && phoneMatch && b.status === 'confirmed';
+      });
+      if (!matches.length) {
+        return res.status(404).json({ success: false, message: `No confirmed bookings found for ${name || phone}.` });
+      }
+      if (matches.length > 1) {
+        return res.status(400).json({
+          success: false,
+          message: `Multiple bookings found. Please provide a booking_id to cancel the right one.`,
+          bookings: matches.map(b => ({ booking_id: b.id, date: b.date, time: b.time, services: b.services, stylist: b.stylist })),
+        });
+      }
+      booking = matches[0];
+    }
+
+    if (booking.status === 'cancelled') {
+      return res.status(400).json({ success: false, message: `Booking #${booking.id} is already cancelled.` });
+    }
+
+    const updated = store.updateBookingStatus(booking.id, 'cancelled');
+    res.json({
+      success: true,
+      message: `Booking cancelled. ${updated.customer_name}'s ${updated.services} appointment with ${updated.stylist} on ${updated.date} at ${updated.time} has been cancelled.`,
+      booking: updated,
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
 // PATCH /api/bookings/:id/status  — admin update
 router.patch('/:id/status', (req, res) => {
   try {
